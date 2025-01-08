@@ -22,7 +22,7 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
       return;
     }
 
-    const finalProduct = { ...Product, Size: selectedSize };
+    const finalProduct = { ...Product, Size: selectedSize, Qty: 1 };
     dispatch(add(finalProduct));
 
     setNotification("Product added to cart successfully!");

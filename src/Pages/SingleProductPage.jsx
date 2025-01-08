@@ -5,10 +5,8 @@ const initialState = {
   singleProduct: null,
   error: null,
   isLoading: false,
-  updatedData: [], // This will store the updated product details
+  updatedData: [],
 };
-
-// The tags and other constants remain the same...
 
 const Data = createSlice({
   name: "data",

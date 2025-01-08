@@ -111,7 +111,6 @@ const SinglePrdSize = (SingleProduct) => {
   }, {});
 
   const Product = { ...SingleProduct.singleProduct };
-  console.log(Product);
 
   return (
     <div className="w-full h-auto mt-6">

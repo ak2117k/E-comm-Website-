@@ -9,7 +9,6 @@ import PostNav from "../Components/PostNav";
 
 const HomePage = () => {
   const CarouselData = HomePageData.Carousel;
-  console.log(CarouselData);
   let sliderRef = useRef(null);
   const settings = {
     dots: true,
@@ -20,9 +19,6 @@ const HomePage = () => {
     autoplaySpeed: 3300,
     arrows: false,
   };
-
-  console.log(CarouselData);
-
   return (
     <div className="">
       <div className="w-[100%]">

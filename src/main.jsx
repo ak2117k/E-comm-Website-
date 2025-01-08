@@ -11,10 +11,12 @@ import App from "./App.jsx";
 import Layout from "./Components/Layout.jsx";
 import HomePage from "./Pages/HomePage.jsx";
 import ClientPage from "./Pages/ClientPage.jsx";
-import Cart from "./Pages/Cart.jsx";
+// import Cart from "./Pages/Cart.jsx";
+import Cart from "./Pages/Cart/Index.jsx";
 // import SingleProductPage from "./Pages/SingleProductPage.jsx";
 import SingleProductPage from "./Pages/SinglePrd/index.jsx";
 import Waitlist from "./Pages/Waitlist.jsx";
+import Login from "./Pages/LoginOrSignUp/Index.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -31,6 +33,7 @@ const router = createBrowserRouter(
         path="/products/:gender/:description/:id"
         element={<SingleProductPage />}
       ></Route>
+      <Route path="/login" element={<Login />} />
     </Route>
   )
 );
