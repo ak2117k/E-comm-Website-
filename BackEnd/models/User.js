@@ -97,6 +97,13 @@ const userSchema = mongoose.Schema(
         required: true,
       },
     ],
+    myCart: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        required: true,
+      },
+    ],
   },
   { timestamps: true }
 );

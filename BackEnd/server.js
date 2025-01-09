@@ -6,6 +6,7 @@ dotenv.config();
 const connectDb = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
+const cartRoutes = require("./routes/cartRoutes");
 
 const app = express();
 
@@ -17,6 +18,9 @@ app.use("/users", userRoutes);
 
 //Use the product routes under the /product prefix
 app.use("/product", productRoutes);
+
+//Use the cart routes under the /cart prefix
+app.use("/cart", cartRoutes);
 
 const PORT = process.env.PORT || 3000;
 

@@ -3,41 +3,83 @@ import { useSelector, useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { addUser } from "../Storee/User";
 import { addtoWishlist } from "../Storee/WishlistSlice";
+import { add } from "../Storee/CartSlice";
+import axios from "axios";
 
 const NavBar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [searchVal, setSearchVal] = useState("");
   const user = useSelector((state) => state.user.user);
+  const cart = useSelector((state) => state.cart.cart);
+  const wishlistItems = useSelector((state) => state.wishlist);
+
+  const getCookieValue = (key) => {
+    const cookieString = document.cookie;
+    console.log(cookieString);
+    const cookies = cookieString.split("; ").reduce((acc, current) => {
+      const [cookieKey, cookieValue] = current.split("=");
+      acc[cookieKey] = cookieValue;
+      return acc;
+    }, {});
+    console.log(cookies);
+    try {
+      return cookies[key] ? JSON.parse(decodeURIComponent(cookies[key])) : null;
+    } catch (error) {
+      console.error("Error parsing cookie:", error);
+      return null;
+    }
+  };
 
   useEffect(() => {
-    const getCookieValue = (key) => {
-      const cookieString = document.cookie;
-      const cookies = cookieString.split("; ").reduce((acc, current) => {
-        const [cookieKey, cookieValue] = current.split("=");
-        acc[cookieKey] = cookieValue;
-        return acc;
-      }, {});
-      try {
-        return cookies[key]
-          ? JSON.parse(decodeURIComponent(cookies[key]))
-          : null;
-      } catch (error) {
-        console.error("Error parsing cookie:", error);
-        return null;
-      }
-    };
-
     const userCookie = getCookieValue("user");
+    const cartCookie = getCookieValue("userCart");
+
+    console.log("User cookie:", userCookie);
+    console.log("Cart cookie:", cartCookie);
+
     if (userCookie) {
       dispatch(addUser(userCookie));
       sendToWishlist(userCookie.myWishlist);
     }
-  }, [dispatch]); // Only depends on dispatch
+    if (cartCookie?.length > 0) {
+      sendToCart(cartCookie);
+    }
+  }, [dispatch]); // Re-run only when dispatch changes
 
   function sendToWishlist(wishlistedItems) {
-    wishlistedItems.forEach((item) => {
-      dispatch(addtoWishlist(item));
+    wishlistedItems.forEach(async (item) => {
+      try {
+        const result = await axios.get(
+          `http://localhost:3000/product/getProducts/${item}`
+        );
+        if (result) {
+          dispatch(addtoWishlist(result.data.productdetails));
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    });
+  }
+
+  function sendToCart(cartItems) {
+    cartItems.forEach(async (item) => {
+      try {
+        const productId = item.productId; // Extract productId
+        if (typeof productId === "string" || productId?._id) {
+          const id = typeof productId === "string" ? productId : productId._id;
+          const result = await axios.get(
+            `http://localhost:3000/product/getProducts/${id}`
+          );
+          if (result) {
+            dispatch(add(result.data.productdetails));
+          }
+        } else {
+          console.error("Invalid productId in cart item:", item);
+        }
+      } catch (error) {
+        console.log(error);
+      }
     });
   }
 
@@ -49,11 +91,11 @@ const NavBar = () => {
     }
   };
 
-  function handleSearchValChange(e) {
+  const handleSearchValChange = (e) => {
     setSearchVal(e.target.value);
-  }
-  if (user) console.log(user);
-
+  };
+  if (cart?.length > 0) console.log(cart);
+  if (wishlistItems?.length > 0) console.log(wishlistItems);
   return (
     <>
       <div className="inline-flex w-screen">

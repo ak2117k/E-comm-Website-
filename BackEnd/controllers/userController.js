@@ -33,6 +33,7 @@ const createNewUser = async (req, res) => {
       myWallet: [],
       myPayments: [],
       myWishlist: [],
+      myCart: [],
     });
     const response = await newUser.save();
     if (response) {
@@ -128,25 +129,105 @@ const updateUserDetails = async (req, res) => {
     if (subscribedToWhatsApp !== undefined)
       findUser.profile.subscribedToWhatsApp = subscribedToWhatsApp;
     if (contactNumber) findUser.profile.contactNumber = contactNumber;
-    if (productId) {
-      const itemIndex = findUser.myWishlist.findIndex(
-        (item) => item.toString() === productId
-      );
+    const result = await findUser.save();
 
-      if (itemIndex > -1) {
-        // Remove product from wishlist if it exists
-        findUser.myWishlist.splice(itemIndex, 1);
-      } else {
-        // Add product to wishlist if it doesn't exist
-        findUser.myWishlist.push(productId);
-      }
-    }
-
-    await findUser.save();
-
-    return res.status(200).json({ message: "Details updated Successfully" });
+    return res
+      .status(200)
+      .json({ message: "Details updated Successfully", result });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const updateWishlist = async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+
+    // Validate inputs
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    if (!productId) {
+      return res.status(400).json({ message: "Product ID is required" });
+    }
+
+    // Find the user
+    const findUser = await User.findById(userId);
+    if (!findUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if the product exists in the wishlist
+    const itemIndex = findUser.myWishlist.findIndex(
+      (item) => item.toString() === productId
+    );
+
+    // Toggle the product in the wishlist (remove if exists, add if not)
+    if (itemIndex > -1) {
+      findUser.myWishlist.splice(itemIndex, 1); // Remove product from wishlist
+    } else {
+      findUser.myWishlist.push(productId); // Add product to wishlist
+    }
+
+    // Save the user with the updated wishlist
+    const result = await findUser.save();
+
+    return res.status(200).json({
+      message: "Wishlist updated successfully",
+      result,
+    });
+  } catch (error) {
+    console.error(error); // Log the error for debugging purposes
+    return res.status(500).json({
+      message: "Internal server error. Please try again later",
+    });
+  }
+};
+
+const updateCart = async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+
+    // Validate inputs
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    if (!productId) {
+      return res.status(400).json({ message: "Product ID is required" });
+    }
+
+    // Find the user
+    const findUser = await User.findById(userId);
+    if (!findUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if the product exists in the wishlist
+    const itemIndex = findUser.myCart.findIndex(
+      (item) => item.toString() === productId
+    );
+
+    // Toggle the product in the wishlist (remove if exists, add if not)
+    if (itemIndex > -1) {
+      findUser.myCart.splice(itemIndex, 1); // Remove product from wishlist
+    } else {
+      findUser.myCart.push(productId); // Add product to wishlist
+    }
+
+    // Save the user with the updated wishlist
+    const result = await findUser.save();
+
+    return res.status(200).json({
+      message: "Wishlist updated successfully",
+      result,
+    });
+  } catch (error) {
+    console.error(error); // Log the error for debugging purposes
+    return res.status(500).json({
+      message: "Internal server error. Please try again later",
+    });
   }
 };
 
@@ -180,4 +261,6 @@ module.exports = {
   updateUserDetails,
   deleteUser,
   chcekUserMail,
+  updateWishlist,
+  updateCart,
 };

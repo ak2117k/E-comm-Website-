@@ -63,11 +63,18 @@ const DetailsForm = () => {
       const userCheck = await userValidation();
       console.log(userCheck.data.findUser);
       if (userCheck.status === 200) {
+        const cart = await getCart(userCheck.data.findUser._id);
         const cookieValue = JSON.stringify(userCheck.data.findUser);
+        const cartCookie = JSON.stringify(cart);
         const expirationTime = new Date();
         expirationTime.setTime(expirationTime.getTime() + 604800000);
         await dispatch(addUser(userCheck.data.findUser));
-        document.cookie = `user=${cookieValue};expires=${expirationTime.toUTCString()};path=/;secure;`;
+        document.cookie = `user=${encodeURIComponent(
+          cookieValue
+        )};expires=${expirationTime.toUTCString()};path=/;`;
+        document.cookie = `userCart=${encodeURIComponent(
+          cartCookie
+        )};expires=${expirationTime.toUTCString()};path=/;`;
         navigate(lastLoc || "/");
       }
     } catch (error) {
@@ -88,6 +95,22 @@ const DetailsForm = () => {
     setTimeout(() => {
       setNotification("");
     }, 2000);
+  }
+  async function getCart(userId) {
+    try {
+      const result = await axios.get(
+        `http://localhost:3000/cart/getItems/${userId}`
+      );
+      if (result.status === 200) {
+        return result.data.cartItems;
+      }
+    } catch (error) {
+      if (error.response.status === 404) {
+        return [];
+      } else {
+        console.log(error);
+      }
+    }
   }
 
   return (
