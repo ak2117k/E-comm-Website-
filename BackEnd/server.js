@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const session = require("express-session");
+const cookieParser = require("cookie-parser");
 const dotenv = require("dotenv");
 // Load environment variables from the .env file
 dotenv.config();
@@ -12,7 +14,14 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
-
+app.use(cookieParser());
+app.use(
+  session({
+    secret: "aryan",
+    saveUninitialized: true,
+    resave: true,
+  })
+);
 // Use the user routes under the /users prefix
 app.use("/users", userRoutes);
 

@@ -1,0 +1,124 @@
+const getProductDetails = async (req, res) => {
+  try {
+    let {
+      gender,
+      category,
+      sizes,
+      brand,
+      color,
+      discount,
+      sort,
+      page,
+      limit,
+      search,
+    } = req.query;
+
+    // Parse and validate query parameters
+    const parseQuery = (param) =>
+      param ? param.split("_").map((p) => p.trim()) : [];
+    const gen = parseQuery(gender);
+    const categories = parseQuery(category);
+    const colors = parseQuery(color);
+    const allsizes = parseQuery(sizes);
+    const brands = parseQuery(brand);
+    const discounts = parseQuery(discount);
+
+    const sortingType = sort === "High" ? -1 : 1;
+    page = isNaN(Number(page)) ? 1 : Number(page);
+    limit = isNaN(Number(limit)) ? 50 : Number(limit);
+    console.log(page, limit);
+    const skip = (page - 1) * limit;
+    console.log("skiping value", skip);
+
+    const pipeline = [
+      ...(search
+        ? [
+            {
+              $search: {
+                index: "default", // Name of your search index
+                text: {
+                  query: search,
+                  path: ["category", "brand", "info", "description"], // Fields to search
+                  fuzzy: {
+                    maxEdits: 2, // Allow up to 2 character differences
+                    prefixLength: 1, // Match the first character exactly
+                  },
+                },
+              },
+            },
+          ]
+        : []),
+      ...(gen.length > 0 ? [{ $match: { gender: { $in: gen } } }] : []),
+      ...(categories.length > 0
+        ? [{ $match: { category: { $in: categories } } }]
+        : []),
+        
+      ...(colors.length > 0 ? [{ $match: { color: { $in: colors } } }] : []),
+      ...(allsizes.length > 0 ? [{ $match: { size: { $in: allsizes } } }] : []),
+      ...(brands.length > 0 ? [{ $match: { brand: { $in: brands } } }] : []),
+      ...(discounts.length > 0
+        ? [{ $match: { discount: { $in: discounts.map(Number) } } }]
+        : []),
+
+      {
+        $facet: {
+          totalProducts: [{ $count: "total" }],
+          paginatedProducts: [
+            // { $sort: { price: sortingType } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          differentCategories: [
+            { $group: { _id: null, categories: { $addToSet: "$category" } } },
+            { $project: { _id: 0, categories: 1 } },
+          ],
+          differentColors: [
+            { $group: { _id: null, colors: { $addToSet: "$color" } } },
+            { $project: { _id: 0, colors: 1 } },
+          ],
+          differentSizes: [
+            { $unwind: "$productQty" },
+            { $group: { _id: null, sizes: { $addToSet: "$productQty.size" } } },
+            { $project: { _id: 0, sizes: 1 } },
+          ],
+          differentBrands: [
+            { $group: { _id: null, brands: { $addToSet: "$brand" } } },
+            { $project: { _id: 0, brands: 1 } },
+          ],
+          differentDiscounts: [
+            { $group: { _id: null, discounts: { $addToSet: "$discount" } } },
+            { $project: { _id: 0, discounts: 1 } },
+          ],
+          differentGenders: [
+            { $group: { _id: null, genders: { $addToSet: "$gender" } } },
+            { $project: { _id: 0, genders: 1 } },
+          ],
+        },
+      },
+    ];
+
+    let result = await Product.aggregate(pipeline).allowDiskUse(true);
+    const totalProducts = result[0]?.totalProducts?.[0]?.total || 0;
+
+    if (result[0]?.paginatedProducts?.length > 0) {
+      console.log(result[0]?.paginatedProducts.length);
+      return res.status(200).json({
+        message: "Products fetched successfully",
+        total: totalProducts,
+        products: result[0]?.paginatedProducts || [],
+        differentCategories:
+          result[0]?.differentCategories?.[0]?.categories || [],
+        differentColors: result[0]?.differentColors?.[0]?.colors || [],
+        differentSizes: result[0]?.differentSizes?.[0]?.sizes || [],
+        differentBrands: result[0]?.differentBrands?.[0]?.brands || [],
+        differentDiscounts: result[0]?.differentDiscounts?.[0]?.discounts || [],
+        differentGenders: result[0]?.differentGenders?.[0]?.genders || [],
+      });
+    }
+
+    return res.status(404).json({ message: "Products not found" });
+  } catch (error) {
+    console.error("Error fetching product details:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};

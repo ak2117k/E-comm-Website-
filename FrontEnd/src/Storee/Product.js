@@ -45,6 +45,9 @@ const product = createSlice({
     setProductsCount: (state, action) => {
       state.totalProducts = action.payload;
     },
+    clearData: (state, action) => {
+      state.data = [];
+    },
   },
 });
 
@@ -59,5 +62,6 @@ export const {
   fetchDiscounts,
   setProductsCount,
   appendData,
+  clearData,
 } = product.actions;
 export default product.reducer;

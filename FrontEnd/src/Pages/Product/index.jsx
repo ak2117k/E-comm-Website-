@@ -11,30 +11,70 @@ import {
   fetchSizes,
   setLoader,
   setProductsCount,
+  clearData,
 } from "../../Storee/Product";
 import Filter from "./Components/Filter";
 import ProductContainer from "./Components/ProductContainer";
 
-const index = () => {
+const Index = () => {
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({
+    gender: [],
+    category: [],
+    sizes: [],
+    brand: [],
+    color: [],
+    discount: [],
+  });
+
   const loaderRef = useRef(null);
-
   const dispatch = useDispatch();
-
   const Products = useSelector((state) => state.product.data);
   const Loader = useSelector((state) => state.product.isLoading);
   const totalProducts = useSelector((state) => state.product.totalProducts);
 
-  async function fetchProducts(currentPage) {
-    dispatch(setLoader(true)); // Set loader to true before the request
+  // Helper function to format filters for query string
+  const formatFilter = (filter) => (filter.length > 0 ? filter.join("_") : "");
+
+  const allSizes = [
+    "XS",
+    "S",
+    "M",
+    "L",
+    "XL",
+    "28",
+    "30",
+    "32",
+    "34",
+    "36",
+    "38",
+  ];
+
+  const topSizes = ["XS", "S", "M", "L", "XL"];
+  const bottomSizes = ["28", "30", "32", "34", "36", "38"];
+
+  // Fetch products from the backend with formatted filters
+  const fetchProducts = async (currentPage, appliedFilters) => {
+    dispatch(setLoader(true));
     try {
-      // Fetch the product data and unique attributes from the backend
+      // Construct query parameters dynamically
+      const params = {
+        page: currentPage,
+        gender: formatFilter(appliedFilters.gender),
+        category: formatFilter(appliedFilters.category),
+        sizes: formatFilter(appliedFilters.sizes),
+        brand: formatFilter(appliedFilters.brand),
+        color: formatFilter(appliedFilters.color),
+        discount: formatFilter(appliedFilters.discount),
+      };
+      console.log(params);
+
       const response = await axios.get(
-        `http://localhost:3000/product/getProducts?page=${currentPage}`
+        `http://localhost:3000/product/getProducts`,
+        { params }
       );
       console.log(response);
 
-      // Destructure the response data
       const {
         products = [],
         differentGenders = [],
@@ -43,71 +83,60 @@ const index = () => {
         differentSizes = [],
         differentBrands = [],
         differentDiscounts = [],
-      } = response.data || {}; // Ensure that we handle cases where data might be undefined
+        total,
+      } = response.data;
 
-      // Log the data (Optional for debugging)
-      console.log(
-        products,
-        differentGenders,
-        differentCategories,
-        differentColors,
-        differentSizes,
-        differentBrands,
-        differentDiscounts
-      );
-
-      const totalProducts = response.data.total;
-
-      // Dispatch the fetched products to the store (you can adapt this as per your needs)
       if (products.length > 0) {
         dispatch(appendData(products));
-        // dispatch(fetchData(products)); // Assuming fetchData is an action creator for setting products
         dispatch(fetchGender(differentGenders));
         dispatch(fetchCategory(differentCategories));
         dispatch(fetchSizes(differentSizes));
         dispatch(fetchBrands(differentBrands));
         dispatch(fetchColors(differentColors));
         dispatch(fetchDiscounts(differentDiscounts));
-        dispatch(setProductsCount(totalProducts));
+        dispatch(setProductsCount(total));
       }
     } catch (error) {
-      console.log(error); // Log any error that occurs during the fetch
+      console.log("Error fetching products:", error);
     } finally {
-      dispatch(setLoader(false)); // Set loader to false after the request completes
+      dispatch(setLoader(false));
     }
-  }
+  };
 
   useEffect(() => {
-    fetchProducts(page); // Call the fetch function to load the products and attributes
-  }, [page]); // Effect dependency on page for infinite scrolling
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && Products.length < totalProducts) {
-          setPage((prevPage) => prevPage + 1);
-        }
-      },
-      { threshold: 1.0 }
-    );
-    if (loaderRef.current) observer.observe(loaderRef.current);
-
-    return () => observer.disconnect();
-  }, []);
-
-  console.log(Products);
+    dispatch(setLoader(true)); // loads the loader
+    dispatch(setProductsCount(0)); // Reset products count
+    dispatch(clearData()); // Clear existing products
+    setPage(1); // Reset to page 1
+    fetchProducts(1, filters); // Fetch new products
+  }, [dispatch, filters]);
 
   return (
-    <div className="">
-      {Products.length > 0 && (
-        <div className=" flex w-full h-[100vh] border-2 border-red-500">
-          <div className="w-[27%] h-[1370px]">
-            <Filter Products={Products} />
+    <div>
+      {Loader && (
+        <div className="flex w-[100%] h-[100%] justify-center mt-[100px] bg-opacity-50">
+          <img
+            src="https://www.bewakoof.com/images/bwkf-loader.gif"
+            className="h-[270px] w-[270px] justify-center"
+          />
+        </div>
+      )}
+      {!Loader && Products.length > 0 && (
+        <div className="flex w-full h-[100vh]">
+          <div className="w-[27%] h-full p-10">
+            <Filter
+              filters={filters}
+              setFilters={setFilters}
+              allSizes={allSizes}
+              topSizes={topSizes}
+              bottomSizes={bottomSizes}
+            />
           </div>
-          <div className="w-[73%] border-2 border-green-200 h-full scrollbar-none">
+          <div className="w-[73%] h-full overflow-y-auto pt-10">
             <ProductContainer
               loaderRef={loaderRef}
               fetchProducts={fetchProducts}
+              filters={filters}
             />
           </div>
         </div>
@@ -116,4 +145,4 @@ const index = () => {
   );
 };
 
-export default index;
+export default Index;

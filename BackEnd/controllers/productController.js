@@ -92,100 +92,95 @@ const getProductDetails = async (req, res) => {
       param ? param.split("_").map((p) => p.trim()) : [];
     const gen = parseQuery(gender);
     const categories = parseQuery(category);
-    const colors = parseQuery(color);
     const allsizes = parseQuery(sizes);
     const brands = parseQuery(brand);
-    const discounts = parseQuery(discount);
+    const colors = parseQuery(color);
+    const discounts = parseQuery(discount).map(Number);
 
     const sortingType = sort === "High" ? -1 : 1;
     page = isNaN(Number(page)) ? 1 : Number(page);
     limit = isNaN(Number(limit)) ? 50 : Number(limit);
-    console.log(page, limit);
     const skip = (page - 1) * limit;
-    console.log("skiping value", skip);
 
-    const pipeline = [
-      ...(search
-        ? [
-            {
-              $search: {
-                index: "default", // Name of your search index
-                text: {
-                  query: search,
-                  path: ["category", "brand", "info", "description"], // Fields to search
-                  fuzzy: {
-                    maxEdits: 2, // Allow up to 2 character differences
-                    prefixLength: 1, // Match the first character exactly
-                  },
-                },
-              },
-            },
-          ]
-        : []),
+    // Step 1: Initial pipeline to filter by gender and category and get distinct values
+    const initialPipeline = [
       ...(gen.length > 0 ? [{ $match: { gender: { $in: gen } } }] : []),
       ...(categories.length > 0
         ? [{ $match: { category: { $in: categories } } }]
         : []),
-      ...(colors.length > 0 ? [{ $match: { color: { $in: colors } } }] : []),
-      ...(allsizes.length > 0 ? [{ $match: { size: { $in: allsizes } } }] : []),
-      ...(brands.length > 0 ? [{ $match: { brand: { $in: brands } } }] : []),
-      ...(discounts.length > 0
-        ? [{ $match: { discount: { $in: discounts.map(Number) } } }]
-        : []),
-
       {
         $facet: {
-          totalProducts: [{ $count: "total" }],
-          paginatedProducts: [
-            // { $sort: { price: sortingType } },
-            { $skip: skip },
-            { $limit: limit },
-          ],
-          differentCategories: [
-            { $group: { _id: null, categories: { $addToSet: "$category" } } },
-            { $project: { _id: 0, categories: 1 } },
+          differentBrands: [
+            { $group: { _id: "$brand" } },
+            { $project: { _id: 0, brand: "$_id" } },
           ],
           differentColors: [
-            { $group: { _id: null, colors: { $addToSet: "$color" } } },
-            { $project: { _id: 0, colors: 1 } },
+            { $group: { _id: "$color" } },
+            { $project: { _id: 0, color: "$_id" } },
           ],
           differentSizes: [
             { $unwind: "$productQty" },
-            { $group: { _id: null, sizes: { $addToSet: "$productQty.size" } } },
-            { $project: { _id: 0, sizes: 1 } },
-          ],
-          differentBrands: [
-            { $group: { _id: null, brands: { $addToSet: "$brand" } } },
-            { $project: { _id: 0, brands: 1 } },
+            { $group: { _id: "$productQty.size" } },
+            { $project: { _id: 0, size: "$_id" } },
           ],
           differentDiscounts: [
-            { $group: { _id: null, discounts: { $addToSet: "$discount" } } },
-            { $project: { _id: 0, discounts: 1 } },
-          ],
-          differentGenders: [
-            { $group: { _id: null, genders: { $addToSet: "$gender" } } },
-            { $project: { _id: 0, genders: 1 } },
+            { $group: { _id: "$discount" } },
+            { $project: { _id: 0, discount: "$_id" } },
           ],
         },
       },
     ];
 
-    let result = await Product.aggregate(pipeline).allowDiskUse(true);
-    const totalProducts = result[0]?.totalProducts?.[0]?.total || 0;
+    const initialResult = await Product.aggregate(initialPipeline).allowDiskUse(
+      true
+    );
+    const differentBrands =
+      initialResult[0]?.differentBrands.map((item) => item.brand) || [];
+    const differentColors =
+      initialResult[0]?.differentColors.map((item) => item.color) || [];
+    const differentSizes =
+      initialResult[0]?.differentSizes.map((item) => item.size) || [];
+    const differentDiscounts =
+      initialResult[0]?.differentDiscounts.map((item) => item.discount) || [];
 
-    if (result[0]?.paginatedProducts?.length > 0) {
-      console.log(result[0]?.paginatedProducts.length);
+    // Step 2: Filter by the additional filters and paginate
+    const finalPipeline = [
+      ...(gen.length > 0 ? [{ $match: { gender: { $in: gen } } }] : []),
+      ...(categories.length > 0
+        ? [{ $match: { category: { $in: categories } } }]
+        : []),
+      ...(colors.length > 0 ? [{ $match: { color: { $in: colors } } }] : []),
+      ...(allsizes.length > 0
+        ? [{ $match: { "productQty.size": { $in: allsizes } } }]
+        : []),
+      ...(brands.length > 0 ? [{ $match: { brand: { $in: brands } } }] : []),
+      ...(discounts.length > 0
+        ? [{ $match: { discount: { $in: discounts } } }]
+        : []),
+      { $sort: { price: sortingType } },
+      {
+        $facet: {
+          totalProducts: [{ $count: "total" }],
+          paginatedProducts: [{ $skip: skip }, { $limit: limit }],
+        },
+      },
+    ];
+
+    const finalResult = await Product.aggregate(finalPipeline).allowDiskUse(
+      true
+    );
+    const totalProducts = finalResult[0]?.totalProducts?.[0]?.total || 0;
+    const paginatedProducts = finalResult[0]?.paginatedProducts || [];
+
+    if (paginatedProducts.length > 0) {
       return res.status(200).json({
         message: "Products fetched successfully",
         total: totalProducts,
-        products: result[0]?.paginatedProducts || [],
-        differentCategories:
-          result[0]?.differentCategories?.[0]?.categories || [],
-        differentColors: result[0]?.differentColors?.[0]?.colors || [],
-        differentSizes: result[0]?.differentSizes?.[0]?.sizes || [],
-        differentBrands: result[0]?.differentBrands?.[0]?.brands || [],
-        differentDiscounts: result[0]?.differentDiscounts?.[0]?.discounts || [],
-        differentGenders: result[0]?.differentGenders?.[0]?.genders || [],
+        products: paginatedProducts,
+        differentBrands,
+        differentColors,
+        differentSizes,
+        differentDiscounts,
       });
     }
 

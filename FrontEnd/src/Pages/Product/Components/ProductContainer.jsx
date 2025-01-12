@@ -1,13 +1,39 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
 
-const ProductContainer = ({ fetchProducts, loaderRef }) => {
+const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
   const products = useSelector((state) => state.product.data);
   const productsCount = useSelector((state) => state.product.totalProducts);
   const categories = useSelector((state) => state.product.category);
+  const [page, setPage] = useState(1);
+  const dispatch = useDispatch();
 
   console.log(products.length, products.length < productsCount);
+
+  const handleScroll = () => {
+    if (loaderRef.current) {
+      const bottom = loaderRef.current.getBoundingClientRect().bottom;
+      const isBottom = bottom <= window.innerHeight;
+      if (isBottom && products.length < productsCount) {
+        // Fetch the next page of products
+        setPage((prevPage) => prevPage + 1);
+      }
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [dispatch, products, productsCount]);
+
+  useEffect(() => {
+    if (page > 1) {
+      // Fetch more products when the page number changes
+      fetchProducts(page, filters);
+    }
+  }, [dispatch, page]);
 
   return (
     <div className="h-full  overflow-y-auto scrollbar-none">
@@ -112,7 +138,13 @@ const ProductContainer = ({ fetchProducts, loaderRef }) => {
         ))}
       </div>
       {products.length < productsCount && products.length > 0 && (
-        <div ref={loaderRef} style={{ height: "50px", marginTop: "20px" }}>
+        <div ref={loaderRef} style={{ height: "30px", marginTop: "20px" }}>
+          {/* <div className="flex h-[30px] justify-center mt-[100px] bg-opacity-50">
+            <img
+              src="https://www.bewakoof.com/images/bwkf-loader.gif"
+              className="h-[270px] w-[270px] justify-center"
+            />
+          </div> */}
           <p>Loading more products...</p>
         </div>
       )}
