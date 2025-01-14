@@ -89,7 +89,7 @@ const addOrUpdateCartItem = async (req, res) => {
     const result = await cart.save();
     return res
       .status(200)
-      .json({ message: "Cart item updated successfully", cart: result });
+      .json({ message: "Cart item updated successfully", result });
   } catch (error) {
     return res
       .status(500)

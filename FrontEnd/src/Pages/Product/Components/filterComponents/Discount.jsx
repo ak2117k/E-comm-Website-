@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+import { useDispatch } from "react-redux";
 
 const Discount = ({ filters, setFilters }) => {
   const discounts = useSelector((state) => state.product.discounts);
+  const dispatch = useDispatch();
 
   const sortedDiscount = discounts ? [...discounts].sort((a, b) => a - b) : [];
 
@@ -18,6 +20,17 @@ const Discount = ({ filters, setFilters }) => {
       : [...filters.discount, discount]; // Add discount
     setFilters({ ...filters, discount: newFilters });
   };
+
+  useEffect(() => {
+    const savedExpandedState = sessionStorage.getItem("isExpandedDiscount");
+    if (savedExpandedState !== null) {
+      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    sessionStorage.setItem("isExpandedDiscount", JSON.stringify(isExpanded)); // Save state to sessionStorage
+  }, [dispatch, isExpanded]);
 
   // Toggle between showing all discounts or just the first 5
   const toggleDiscountsView = () => {

@@ -174,7 +174,10 @@ const updateWishlist = async (req, res) => {
     const result = await findUser.save();
 
     return res.status(200).json({
-      message: "Wishlist updated successfully",
+      message:
+        itemIndex > -1
+          ? "Item removed from wishlist"
+          : "Item added to wishlist",
       result,
     });
   } catch (error) {

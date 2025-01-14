@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+import { useDispatch } from "react-redux";
 
 const Size = ({ filters, setFilters, allSizes, topSizes, bottomSizes }) => {
   const category = useSelector((state) => state.product.category);
+  const dispatch = useDispatch();
 
   // State to track whether the size list is expanded or not
   const [isExpanded, setIsExpanded] = useState(false);
@@ -15,6 +17,17 @@ const Size = ({ filters, setFilters, allSizes, topSizes, bottomSizes }) => {
       : [...filters.sizes, size]; // Add size
     setFilters({ ...filters, sizes: newFilters }); // Update 'sizes' field in 'filters'
   };
+
+  useEffect(() => {
+    const savedExpandedState = sessionStorage.getItem("isExpandedBrand");
+    if (savedExpandedState !== null) {
+      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    sessionStorage.setItem("isExpandedBrand", JSON.stringify(isExpanded)); // Save state to sessionStorage
+  }, [dispatch, isExpanded]);
 
   // Toggle between showing all sizes or just the first 5
   const toggleSizeView = () => {

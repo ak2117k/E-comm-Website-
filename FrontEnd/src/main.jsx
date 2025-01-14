@@ -17,6 +17,7 @@ import Waitlist from "./Pages/Waitlist.jsx";
 import Product from "./Pages/Product/index.jsx";
 import Login from "./Pages/LoginIn/index.jsx";
 import SignUp from "./Pages/SignUP/index.jsx";
+import Wishlist from "./Pages/Wishlist/index.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -28,7 +29,7 @@ const router = createBrowserRouter(
         element={<ClientPage />}
       ></Route>
       <Route path="/cart" element={<Cart />} />
-      <Route path="/wishlist" element={<Waitlist />} />
+      <Route path="/wishlist" element={<Wishlist />} />
       <Route
         path="/products/:gender/:description/:id"
         element={<SingleProductPage />}

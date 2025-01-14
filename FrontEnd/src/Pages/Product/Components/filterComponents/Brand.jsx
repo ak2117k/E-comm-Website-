@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+import { useDispatch } from "react-redux";
 
 const Brand = ({ filters, setFilters }) => {
   const Brands = useSelector((state) => state.product.brands);
+  const dispatch = useDispatch();
 
   // Create a copy of the array and then sort it
   const sortedBrands = Brands
@@ -14,6 +16,29 @@ const Brand = ({ filters, setFilters }) => {
 
   const [isExpanded, setIsExpanded] = useState(false); // Track whether the brands list is expanded
   const [showContainer, setShowContainer] = useState(true);
+
+  useEffect(() => {
+    const savedExpandedState = sessionStorage.getItem("isExpandedBrands");
+    const BrandsSelected = sessionStorage.getItem("selectedBrands");
+    if (savedExpandedState !== null) {
+      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    }
+    // if (BrandsSelected !== null) {
+    //   const selectedBrands = JSON.parse(BrandsSelected); // Parse it as an array
+    //   setFilters((prevFilters) => ({
+    //     ...prevFilters,
+    //     brand: selectedBrands,
+    //   }));
+    // }
+  }, [dispatch]);
+
+  useEffect(() => {
+    sessionStorage.setItem("isExpandedBrands", JSON.stringify(isExpanded)); // Save state to sessionStorage
+  }, [dispatch, isExpanded]);
+
+  // useEffect(() => {
+  //   sessionStorage.setItem("selectedBrands", JSON.stringify([filters.brand]));
+  // }, [dispatch]);
 
   const handleFilterChange = (brand) => {
     const newFilters = filters.brand.includes(brand)

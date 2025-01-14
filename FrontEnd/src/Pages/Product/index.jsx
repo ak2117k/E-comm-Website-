@@ -55,7 +55,7 @@ const Index = () => {
 
   // Fetch products from the backend with formatted filters
   const fetchProducts = async (currentPage, appliedFilters) => {
-    dispatch(setLoader(true));
+    // dispatch(setLoader(true));
     try {
       // Construct query parameters dynamically
       const params = {
@@ -107,7 +107,7 @@ const Index = () => {
     dispatch(setLoader(true)); // loads the loader
     dispatch(setProductsCount(0)); // Reset products count
     dispatch(clearData()); // Clear existing products
-    setPage(1); // Reset to page 1
+    // setPage(1); // Reset to page 1
     fetchProducts(1, filters); // Fetch new products
   }, [dispatch, filters]);
 

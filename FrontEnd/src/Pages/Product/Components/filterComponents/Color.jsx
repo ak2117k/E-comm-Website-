@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+import { useDispatch } from "react-redux";
 
 const Color = ({ filters, setFilters }) => {
   const colors = useSelector((state) => state.product.colors);
+  const dispatch = useDispatch();
   console.log(colors);
 
   // Filter out null/undefined and sort alphabetically
@@ -24,6 +26,17 @@ const Color = ({ filters, setFilters }) => {
       : [...filters.color, color]; // Add color
     setFilters({ ...filters, color: newFilters });
   };
+
+  useEffect(() => {
+    const savedExpandedState = sessionStorage.getItem("isExpandedColor");
+    if (savedExpandedState !== null) {
+      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    sessionStorage.setItem("isExpandedColor", JSON.stringify(isExpanded)); // Save state to sessionStorage
+  }, [dispatch, isExpanded]);
 
   // Toggle between showing all colors or just the first 5
   const toggleColorsView = () => {

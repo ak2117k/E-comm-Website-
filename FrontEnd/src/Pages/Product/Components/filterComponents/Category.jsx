@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+import { useDispatch } from "react-redux";
 
 const Category = ({ filters, setFilters }) => {
   const categories = useSelector((state) => state.product.category);
+  const dispatch = useDispatch();
 
   // Sort categories alphabetically
   const sortedCategory = categories
@@ -23,6 +25,17 @@ const Category = ({ filters, setFilters }) => {
       : [...filters.category, cat]; // Add category
     setFilters({ ...filters, category: newFilters });
   };
+
+  useEffect(() => {
+    const savedExpandedState = sessionStorage.getItem("isExpandedCategory");
+    if (savedExpandedState !== null) {
+      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    sessionStorage.setItem("isExpandedCategory", JSON.stringify(isExpanded)); // Save state to sessionStorage
+  }, [dispatch, isExpanded]);
 
   // Toggle the Show/Hide functionality for categories
   const toggleCategoriesView = () => {
