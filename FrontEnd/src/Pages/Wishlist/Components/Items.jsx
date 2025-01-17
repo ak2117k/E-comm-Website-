@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { addUser } from "../../../Storee/User";
-import { add } from "../../../Storee/CartSlice";
+import { add, clearCart } from "../../../Storee/CartSlice";
 import ShopNow from "./ShopNow";
 
 const Items = () => {
@@ -139,7 +139,6 @@ const Items = () => {
           userId: user._id,
           productId: productId,
           size: selectedSize,
-          quantity: 1,
         }),
         {
           headers: {
@@ -147,10 +146,12 @@ const Items = () => {
           },
         }
       );
+      console.log(result2.data.result, result1.data.result);
 
       if (result1.status === 200 && result2.status === 200) {
-        await dispatch(addUser(result1.data.result));
-        await dispatch(add(result2.data.cart));
+        dispatch(addUser(result1.data.result));
+        dispatch(clearCart());
+        dispatch(add(result2.data.result));
 
         // Update local state to remove the item from the wishlist
         setWishtedItems((prevItems) =>
@@ -158,15 +159,10 @@ const Items = () => {
         );
 
         const cookieValue = JSON.stringify(result1.data.result);
-        const cartCookie = JSON.stringify(result2.data.cart);
-        const expirationTime = new Date();
-        expirationTime.setTime(expirationTime.getTime() + 604800000);
-        document.cookie = `user=${encodeURIComponent(
-          cookieValue
-        )};expires=${expirationTime.toUTCString()};path=/;`;
-        document.cookie = `userCart=${encodeURIComponent(
-          cartCookie
-        )};expires=${expirationTime.toUTCString()};path=/;`;
+        const cartCookie = JSON.stringify(result2.data.result);
+
+        document.cookie = `user=${encodeURIComponent(cookieValue)};path=/;`;
+        document.cookie = `userCart=${encodeURIComponent(cartCookie)};path=/;`;
 
         // Close the size container modal
         setOpenSizeContainers((prev) => ({

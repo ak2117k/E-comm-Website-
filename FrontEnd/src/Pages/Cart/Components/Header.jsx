@@ -4,11 +4,15 @@ import { useSelector } from "react-redux";
 const Header = () => {
   const Products = useSelector((state) => state.cart.cart);
   return (
-    <div className="w-full">
-      <h1 className="flex gap-2 font-semibold text-[18px]">
-        My Bag
-        <span className="font-bold">{`(${Products.length} Items )`}</span>
-      </h1>
+    <div className="">
+      <div className="font-bold text-[22px] text-[rgb(54,53,55)]">
+        My Bag{" "}
+        {Products?.length > 0 && (
+          <span className="font-light text-[15px]">
+            {Products?.length} Items
+          </span>
+        )}
+      </div>
     </div>
   );
 };
