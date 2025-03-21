@@ -67,27 +67,27 @@ const SinglePrdDetails = (SingleProduct) => {
         </div>
       </div>
       <div className="inline-flex gap-2 items-center justify-center mt-4">
-        {Product?.toptag && (
+        {Product?.topTag && (
           <div
             className="text-[12px] font-bold text-white uppercase w-[130px] h-[20px] max-w-fit pl-2 pr-2"
             style={{
               backgroundColor:
-                Product.toptag === "BUY 3 FOR"
+                Product.topTag === "BUY 3 FOR"
                   ? "Green"
-                  : Product.toptag === "SALE"
+                  : Product.topTag === "SALE"
                   ? "Red"
                   : "Gray",
             }}
           >
-            {Product.toptag}
+            {Product.topTag}
           </div>
         )}
         <div className="w-[130px] h-[20px] text-white text-[12px] font-bold bg-gray-400 uppercase max-w-fit pl-2 pr-2">
           {Product.category}
         </div>
-        {Product?.bottomtag && (
+        {Product?.bottomTag && (
           <div className="block border-2 border-gray-400 text-[12px] text-gray-500 w-[130px] h-[20px] max-w-fit pl-2 pr-2 whitespace-nowrap overflow-hidden">
-            {Product.bottomtag}
+            {Product.bottomTag}
           </div>
         )}{" "}
       </div>

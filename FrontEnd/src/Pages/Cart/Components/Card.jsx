@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { IoIosArrowDown } from "react-icons/io";
 import axios from "axios";
-import { add, clearCart, remove } from "../../../Storee/CartSlice";
+import { Link } from "react-router-dom";
+import { addUser } from "../../../Storee/User";
 
 const Card = () => {
-  const Products = useSelector((state) => state.cart.cart);
   const user = useSelector((state) => state.user.user);
   const dispatch = useDispatch();
 
@@ -14,7 +14,7 @@ const Card = () => {
   const [sizes, setSizes] = useState({});
   const [prevSize, setPrevSize] = useState({});
 
-  const [openQtyContainers, setOpenQtyContainers] = useState({}); // Manage quantity modals
+  const [openQtyContainers, setOpenQtyContainers] = useState({});
   const [selectedQuantities, setSelectedQuantities] = useState({});
 
   const getCookieValue = (key) => {
@@ -37,59 +37,15 @@ const Card = () => {
     if (cartCookie?.items?.length > 0) {
       sendToCart(cartCookie?.items);
     }
-  }, [dispatch, Products.length]);
-
-  // Batch API requests for Cart
-  const sendToCart = async (cartItems) => {
-    console.log(cartItems);
-    if (cartItems.length === 0) return;
-
-    try {
-      const products = await Promise.all(
-        cartItems.map(async (item) => {
-          console.log(item);
-          const productId = item.productId;
-          if (productId) {
-            const id =
-              typeof productId === "string" ? productId : productId._id;
-            const result = await axios.get(
-              `http://localhost:3000/product/getProducts/${id}`
-            );
-
-            const productData = result.data.isProduct;
-
-            return {
-              ...productData,
-              size: item.size, // Add the size from the cart item
-              quantity: item.quantity, // Add the quantity from the cart itema
-            };
-          }
-        })
-      );
-      dispatch(clearCart());
-      dispatch(add(products));
-    } catch (error) {
-      console.log("Error fetching cart items:", error);
-    }
-  };
-
-  console.log(Products);
+  }, [dispatch, user.myCart.length]);
 
   const handleRemoveItem = async (item) => {
-    // Logic to remove item
     try {
-      console.log(
-        JSON.stringify({
-          userId: user._id,
-          productId: item._id,
-          size: item.size,
-        })
-      );
       const result = await axios.put(
-        "http://localhost:3000/cart/removeItem",
+        "http://localhost:3000/users/removeFromCart",
         JSON.stringify({
           userId: user._id,
-          productId: item._id,
+          productId: item.productId._id,
           size: item.size,
         }),
         {
@@ -99,23 +55,16 @@ const Card = () => {
         }
       );
       if (result.status === 200) {
-        dispatch(remove(item._id));
-        const cartCookie = JSON.stringify(result.data.result);
-        document.cookie = `userCart=${encodeURIComponent(cartCookie)};path=/;`;
-        const updatedProducts = Products.filter(
-          (product) => product._id !== item._id
-        );
-        dispatch(clearCart());
-        dispatch(add(updatedProducts));
+        const updatedUser = result?.data?.result;
+        dispatch(addUser(updatedUser));
       }
     } catch (error) {
       console.log(error);
     }
   };
 
-  // Open size container for a specific item
   const handleOpenSizeCont = (itemId, item) => {
-    const product = Products.find((p) => p._id === itemId);
+    const product = item.productId; // Use the productId from the cart item
     setSelectedSizes((prevState) => ({
       ...prevState,
       [itemId]: item.size,
@@ -136,14 +85,12 @@ const Card = () => {
       [itemId]: true,
     }));
 
-    // Close any open quantity modals when size modal opens
     setOpenQtyContainers((prevState) => ({
       ...prevState,
       [itemId]: false,
     }));
   };
 
-  // Close size container for a specific item
   const handleCloseSizeContainer = (itemId) => {
     setOpenSizeContainers((prevState) => ({
       ...prevState,
@@ -151,7 +98,6 @@ const Card = () => {
     }));
   };
 
-  // Handle size selection for a specific product
   const handleSelectSize = (itemId, size) => {
     setSelectedSizes((prevState) => ({
       ...prevState,
@@ -159,17 +105,14 @@ const Card = () => {
     }));
   };
 
-  // Handle size confirmation
   const handleSizeConfirm = async (itemId) => {
-    console.log("Size selected for item", itemId, selectedSizes[itemId]);
     try {
       const result = await axios.put(
-        "http://localhost:3000/cart/updateItemSize",
+        "http://localhost:3000/users/updateSize",
         JSON.stringify({
           userId: user._id,
-          productId: itemId,
-          newSize: selectedSizes[itemId],
-          size: prevSize[itemId],
+          itemId: itemId,
+          size: selectedSizes[itemId],
         }),
         {
           headers: {
@@ -178,20 +121,10 @@ const Card = () => {
         }
       );
       if (result.status === 200) {
-        const cartCookie = JSON.stringify(result.data.result);
-        document.cookie = `userCart=${encodeURIComponent(cartCookie)};path=/;`;
-
-        const updatedProducts = Products.map((product) =>
-          product._id === itemId
-            ? { ...product, size: selectedSizes[itemId] }
-            : product
-        );
-        dispatch(clearCart());
-        dispatch(add(updatedProducts));
-
+        dispatch(addUser(result.data.result));
         setOpenSizeContainers((prevState) => ({
           ...prevState,
-          [itemId]: false, // Close the size container after confirming
+          [itemId]: false,
         }));
       }
     } catch (error) {
@@ -199,7 +132,6 @@ const Card = () => {
     }
   };
 
-  // Open quantity container for a specific item
   const handleOpenQtyCotainer = (itemId, item) => {
     setSelectedQuantities((prevState) => ({
       ...prevState,
@@ -211,20 +143,17 @@ const Card = () => {
       [itemId]: item.size,
     }));
 
-    // Open the quantity container
     setOpenQtyContainers((prevState) => ({
       ...prevState,
       [itemId]: true,
     }));
 
-    // Close any open size modals when quantity modal opens
     setOpenSizeContainers((prevState) => ({
       ...prevState,
       [itemId]: false,
     }));
   };
 
-  // Handle quantity selection for a specific item
   const handleSelectQuantity = (itemId, quantity) => {
     setSelectedQuantities((prevState) => ({
       ...prevState,
@@ -232,16 +161,15 @@ const Card = () => {
     }));
   };
 
-  // Handle quantity confirmation
   const handleQtyConfirm = async (itemId) => {
+    console.log(itemId);
     try {
       const result = await axios.put(
-        "http://localhost:3000/cart/addUpdate",
+        "http://localhost:3000/users/updateQuantity",
         JSON.stringify({
           userId: user._id,
-          productId: itemId,
+          itemId: itemId,
           quantity: selectedQuantities[itemId],
-          size: selectedSizes[itemId],
         }),
         {
           headers: {
@@ -249,22 +177,12 @@ const Card = () => {
           },
         }
       );
-      console.log(result);
       if (result.status === 200) {
-        const cartCookie = JSON.stringify(result.data.result);
-        document.cookie = `userCart=${encodeURIComponent(cartCookie)};path=/;`;
-
-        const updatedProducts = Products.map((product) =>
-          product._id === itemId
-            ? { ...product, quantity: selectedQuantities[itemId] }
-            : product
-        );
-        dispatch(clearCart());
-        dispatch(add(updatedProducts));
+        dispatch(addUser(result?.data?.result));
 
         setOpenQtyContainers((prevState) => ({
           ...prevState,
-          [itemId]: false, // Close the quantity container after confirming
+          [itemId]: false,
         }));
       }
     } catch (error) {
@@ -273,33 +191,40 @@ const Card = () => {
   };
 
   return (
-    <div className="w-full ">
-      {Products?.length > 0 && (
+    <div className="w-full">
+      {user?.myCart.length > 0 && (
         <div>
-          {Products.map((product) => (
+          {user.myCart[0]?.items?.map((cartItem) => (
             <div
               className="w-full flex gap-2 border-[1px] border-gray-400 rounded-md p-4"
-              key={product?._id}
+              key={cartItem._id}
             >
               <div className="w-[20%] rounded-md cursor-pointer">
-                <img
-                  className="w-full object-cover rounded-md h-44"
-                  src={product?.image1}
-                  alt={product?.brand}
-                />
+                <Link
+                  to={`/p/${cartItem?.productId?.info
+                    .split(" ")
+                    .map((word) => word.trim())
+                    .join("-")}`}
+                >
+                  <img
+                    className="w-full object-cover rounded-md h-44"
+                    src={cartItem.productId.image1}
+                    alt={cartItem.productId.brand}
+                  />
+                </Link>
               </div>
-              <div className="w-full  ">
-                <div className="flex justify-between ">
-                  <h3 className="pl-2">{product?.brand}</h3>
+              <div className="w-full">
+                <div className="flex justify-between">
+                  <h3 className="pl-2">{cartItem.productId.brand}</h3>
                   <button
                     className="mr-2 text-gray-500"
-                    onClick={() => handleRemoveItem(product)}
+                    onClick={() => handleRemoveItem(cartItem)}
                   >
                     X
                   </button>
                 </div>
                 <div>
-                  <h3 className="pl-2">{product?.info}</h3>
+                  <h3 className="pl-2">{cartItem.productId.info}</h3>
                 </div>
                 <div className="flex items-center text-gray-400 text-sm mt-2 pl-2">
                   <span className="flex items-center justify-center w-[14px] h-[14px] bg-green-200 text-green-500 rounded-full text-sm">
@@ -320,15 +245,17 @@ const Card = () => {
                 </div>
 
                 <div className="flex justify-between w-full mt-16 pb-2">
-                  <div className="w-40 flex gap-2  pl-2">
+                  <div className="w-40 flex gap-2 pl-2">
                     <div className="w-1/2 flex items-center justify-center rounded-sm bg-[rgb(244,248,251)] text-xs">
                       <span className="text-[rgb(31,110,159)]">Size : </span>
                       <span className="uppercase text-[rgb(31,110,159)] ml-[3px]">
-                        {product?.size}
+                        {cartItem.size}
                       </span>
                       <span
                         className="flex items-center justify-center text-blue-400 cursor-pointer ml-2 mt-[1px] font-semibold"
-                        onClick={() => handleOpenSizeCont(product._id, product)}
+                        onClick={() =>
+                          handleOpenSizeCont(cartItem._id, cartItem)
+                        }
                       >
                         <IoIosArrowDown />
                       </span>
@@ -336,12 +263,12 @@ const Card = () => {
                     <div className="w-1/2 flex items-center justify-center rounded-sm bg-[rgb(244,248,251)] text-xs">
                       <span className="text-[rgb(31,110,159)]">Qty :</span>
                       <span className="uppercase text-[rgb(31,110,159)] ml-[3px]">
-                        {product?.quantity}
+                        {cartItem.quantity}
                       </span>
                       <span
                         className="flex items-center justify-center text-blue-400 cursor-pointer font-semibold ml-2 mt-[1px]"
                         onClick={() =>
-                          handleOpenQtyCotainer(product._id, product)
+                          handleOpenQtyCotainer(cartItem._id, cartItem)
                         }
                       >
                         <IoIosArrowDown />
@@ -351,19 +278,20 @@ const Card = () => {
                   <div className="mr-2">
                     <div className="flex justify-center items-center">
                       <span className="text-black font-bold">
-                        ₹{product.oprice * product.quantity}
+                        ₹{cartItem.productId.oprice * cartItem.quantity}
                       </span>
-                      {product.price !== product.oprice && (
+                      {cartItem.productId.price !==
+                        cartItem.productId.oprice && (
                         <span className="relative text-gray-500 text-sm">
                           <span className="absolute top-1/2 left-0 right-0 border-b-2 border-gray-500"></span>
-                          ₹{product.price * product.quantity}
+                          ₹{cartItem.productId.price * cartItem.quantity}
                         </span>
                       )}
                     </div>
-                    {product.price !== product.oprice && (
+                    {cartItem.productId.price !== cartItem.productId.oprice && (
                       <div className="text-sm">{`You saved  ₹${
-                        product.price * product.quantity -
-                        product.oprice * product.quantity
+                        cartItem.productId.price * cartItem.quantity -
+                        cartItem.productId.oprice * cartItem.quantity
                       }`}</div>
                     )}
                   </div>
@@ -422,29 +350,99 @@ const Card = () => {
                           onClick={() => handleSelectSize(itemId, size.size)}
                         >
                           <span className="text-sm">{size?.size}</span>
-                          {size.quantity < 5 && size.quantity > 0 && (
-                            <span className="text-[rgb(234,33,35)] text-xs mt-1">
-                              {size.quantity} left
-                            </span>
-                          )}
+                          <span
+                            className="font-semibold text-[rgb(31,110,159)]"
+                            style={{
+                              color:
+                                size?.quantity === 0
+                                  ? "rgb(200,200,200)"
+                                  : "rgb(31,110,159)",
+                            }}
+                          >
+                            {size?.quantity} left
+                          </span>
                         </button>
                       ))}
                     </div>
 
-                    <div className="w-full mt-8">
+                    <div className="w-full h-[1px] bg-gray-300 mb-4"></div>
+
+                    <div className="flex justify-center gap-4">
                       <button
-                        className="w-full h-8 flex items-center justify-center rounded-md"
-                        style={{
-                          backgroundColor: selectedSizes[itemId]
-                            ? "rgb(255,210,50)"
-                            : "rgb(227,229,233)",
-                          color: selectedSizes[itemId]
-                            ? "black"
-                            : "rgb(157,165,180)",
-                        }}
+                        className="bg-yellow-400 p-2 rounded-md w-36"
                         onClick={() => handleSizeConfirm(itemId)}
                       >
-                        CONFIRM
+                        Confirm
+                      </button>
+                      <button
+                        className="bg-gray-200 p-2 rounded-md w-36"
+                        onClick={() => handleCloseSizeContainer(itemId)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+          )}
+
+          {/* Quantity Selection Modal */}
+          {Object.keys(openQtyContainers).map(
+            (itemId) =>
+              openQtyContainers[itemId] && (
+                <div
+                  className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50"
+                  key={itemId}
+                >
+                  <div className="w-[300px] h-56 border-2 border-gray-500 p-6 bg-white rounded-md">
+                    <div className="flex justify-between mb-4">
+                      <h1 className="font-semibold">Choose Quantity</h1>
+                      <button
+                        className="text-gray-500 ml-4"
+                        onClick={() =>
+                          setOpenQtyContainers((prevState) => ({
+                            ...prevState,
+                            [itemId]: false,
+                          }))
+                        }
+                      >
+                        X
+                      </button>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <button
+                        onClick={() =>
+                          handleSelectQuantity(
+                            itemId,
+                            selectedQuantities[itemId] - 1
+                          )
+                        }
+                        disabled={selectedQuantities[itemId] <= 1}
+                      >
+                        -
+                      </button>
+
+                      <span>{selectedQuantities[itemId]}</span>
+
+                      <button
+                        onClick={() =>
+                          handleSelectQuantity(
+                            itemId,
+                            selectedQuantities[itemId] + 1
+                          )
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div className="mt-4">
+                      <button
+                        className="bg-yellow-400 p-2 rounded-md w-full"
+                        onClick={() => handleQtyConfirm(itemId)}
+                      >
+                        Confirm
                       </button>
                     </div>
                   </div>
@@ -452,71 +450,6 @@ const Card = () => {
               )
           )}
         </div>
-      )}
-
-      {/* Quantity Selection Modal */}
-      {Object.keys(openQtyContainers).map(
-        (itemId) =>
-          openQtyContainers[itemId] && (
-            <div
-              className="absolute  flex justify-center items-center bg-black bg-opacity-50 z-50 translate-y-48 translate-x-48"
-              key={itemId}
-            >
-              <div className="w-[500px] h-[280px] border-2 border-gray-500 p-6 bg-white rounded-md">
-                <div className="flex justify-between mb-4">
-                  <h1 className="font-semibold">Select Quantity</h1>
-                  <button
-                    className="text-gray-500 ml-4"
-                    onClick={() =>
-                      setOpenQtyContainers((prevState) => ({
-                        ...prevState,
-                        [itemId]: false,
-                      }))
-                    }
-                  >
-                    X
-                  </button>
-                </div>
-
-                <div className="w-full h-[1px] bg-gray-300 mb-4"></div>
-
-                <div className="grid grid-cols-7 gap-4 w-full m-4 pt-2">
-                  {[...Array(10).keys()].map((quantity) => (
-                    <button
-                      key={quantity + 1}
-                      className="flex flex-col items-center justify-center border-[0.5px] p-2 rounded-md"
-                      onClick={() => handleSelectQuantity(itemId, quantity + 1)}
-                      style={{
-                        backgroundColor:
-                          selectedQuantities[itemId] === quantity + 1
-                            ? "rgb(255,210,50)"
-                            : "white",
-                      }}
-                    >
-                      <span className="text-sm">{quantity + 1}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="w-full mt-8">
-                  <button
-                    className="w-full h-8 flex items-center justify-center rounded-md"
-                    style={{
-                      backgroundColor: selectedQuantities[itemId]
-                        ? "rgb(255,210,50)"
-                        : "rgb(227,229,233)",
-                      color: selectedQuantities[itemId]
-                        ? "black"
-                        : "rgb(157,165,180)",
-                    }}
-                    onClick={() => handleQtyConfirm(itemId)}
-                  >
-                    CONFIRM
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
       )}
     </div>
   );

@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 import { getProducts, resetData, storeSingleProduct } from "../Storee/Data";
 import { addtoWishlist, removefromWishlist } from "../Storee/WishlistSlice";
-
+import { addUser } from "../Storee/User";
+import axios from "axios";
 const ClientPage = () => {
   const wishlistProducts = useSelector((state) => state.wishlist);
   const [filters, setFilters] = useState({
@@ -20,6 +21,8 @@ const ClientPage = () => {
   const dispatch = useDispatch();
   const loader = useSelector((state) => state.data.isLoading);
   const routeParams = useParams();
+  const user = useSelector((state) => state.user.user);
+
   console.log(routeParams);
 
   useEffect(() => {
@@ -115,21 +118,38 @@ const ClientPage = () => {
     dispatch(storeSingleProduct(item));
   }
 
-  function handlewishlistcheck(item) {
-    const isWishlisted = wishlistProducts.find(
-      (product) => product.id === item.id
-    );
-    if (isWishlisted) {
-      dispatch(removefromWishlist(item.id));
-      setWishlistNotification("Product removed from wishlist!");
-    } else {
-      dispatch(addtoWishlist(item));
-      setWishlistNotification("Successfully added to wishlist!");
+  const handleWishlist = async (productId) => {
+    console.log(productId);
+    try {
+      const result = await axios.put(
+        "http://localhost:3000/users/profile/update/wishlist",
+        JSON.stringify({
+          productId: productId,
+          userId: user._id,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json", // Common header for JSON requests
+          },
+        }
+      );
+
+      // Optionally handle the result if needed
+      if (result.status === 200) {
+        await setNotification(result.data.message);
+        await dispatch(addUser(result.data.result));
+        const updatedUSerdata = JSON.stringify(result.data.result);
+        const expirationTime = new Date();
+        expirationTime.setTime(expirationTime.getTime() + 604800000);
+        document.cookie = `user=${encodeURIComponent(
+          updatedUSerdata
+        )};expires=${expirationTime.toUTCString()};path=/;`;
+        setTimeout(() => setNotification(""), 3000);
+      }
+    } catch (error) {
+      console.error("Error updating wishlist", error); // Handle error
     }
-    setTimeout(() => {
-      setWishlistNotification("");
-    }, 3000);
-  }
+  };
 
   return (
     <div>
@@ -310,13 +330,13 @@ const ClientPage = () => {
                               stroke="currentColor"
                               className="w-6 h-6"
                               style={{
-                                fill: wishlistProducts?.find(
+                                fill: wishlistProducts?.wishlistedItems?.find(
                                   (product) => product.id === item.id
                                 )
                                   ? "red"
                                   : "white",
                               }}
-                              onClick={() => handlewishlistcheck(item)}
+                              onClick={() => handleWishlist(item._id)}
                             >
                               <path
                                 stroke="#303030"

@@ -45,7 +45,7 @@ const HomePage = () => {
 
       <div className="inline-flex h-[370px] w-[100%] gap-2 mt-4 ">
         <div className=" inline-block w-[750px] h-[350px]">
-          <Link to="/products/women">
+          <Link to="/women-clothing">
             <div className="w-[750px] h-[350px]">
               <img
                 src="https://images.bewakoof.com/uploads/grid/app/desktop-shop-women--1--1729584658.gif"
@@ -55,7 +55,7 @@ const HomePage = () => {
           </Link>
         </div>
         <div className=" inline-block w-[750px] h-[350px]">
-          <Link to="/products/men">
+          <Link to="/men-clothing">
             <div className="w-[750px] h-[350px]">
               <img
                 src="https://images.bewakoof.com/uploads/grid/app/desktop-shop-men--2--1729584659.gif"

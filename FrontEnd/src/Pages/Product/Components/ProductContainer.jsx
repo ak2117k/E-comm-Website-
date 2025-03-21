@@ -5,14 +5,20 @@ import { useDispatch } from "react-redux";
 import { FaArrowUp } from "react-icons/fa";
 import { addUser } from "../../../Storee/User";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
   const products = useSelector((state) => state.product.data);
+  console.log("Total Products", products.length);
   const productsCount = useSelector((state) => state.product.totalProducts);
   const categories = useSelector((state) => state.product.category);
   const user = useSelector((state) => state.user.user);
   const [page, setPage] = useState(1);
+
+  const location = useLocation();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [isLoadingMore, setIsLoadingMore] = useState(false); // Track loading state for infinite scroll
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -22,12 +28,16 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
   let scrollPosition = null;
 
   const handleScroll = () => {
-    if (loaderRef.current) {
-      const bottom = loaderRef.current.getBoundingClientRect().bottom;
-      const isBottom = bottom <= window.innerHeight;
+    if (containerRef.current) {
+      const containerHeight = containerRef.current.offsetHeight; // Get the height of the container
+      const scrollHeight = containerRef.current.scrollHeight; // Total height of the content inside the container
+      const scrollTop = containerRef.current.scrollTop; // Current scroll position
+
+      // Check if we are at the bottom of the container
+      const isBottom = scrollHeight - scrollTop - containerHeight <= 200;
 
       if (isBottom && products.length < productsCount && !isLoadingMore) {
-        // Fetch the next page of products
+        console.log("Incrementing Page");
         setIsLoadingMore(true);
         setPage((prevPage) => prevPage + 1);
       }
@@ -43,18 +53,19 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
     }
   };
 
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll); // Cleanup on unmount
-  }, [dispatch, products, productsCount, isLoadingMore]); // Re-run this effect when the product list or product count changes
+  // useEffect(() => {
+  //   window.addEventListener("scroll", handleScroll);
+  //   return () => window.removeEventListener("scroll", handleScroll); // Cleanup on unmount
+  // }, [dispatch, products, productsCount, isLoadingMore]); // Re-run this effect when the product list or product count changes
 
-  useEffect(() => {
-    window.addEventListener("scroll", handleTopScroll);
-    return () => window.removeEventListener("scroll", handleTopScroll);
-  }, [dispatch]);
+  // useEffect(() => {
+  //   window.addEventListener("scroll", handleTopScroll);
+  //   return () => window.removeEventListener("scroll", handleTopScroll);
+  // }, [dispatch]);
 
   useEffect(() => {
     if (page > 1) {
+      console.log(page);
       fetchProducts(page, filters).then(() => {
         setIsLoadingMore(false); // Reset loading state after data is fetched
       });
@@ -71,12 +82,13 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
   }
 
   const handleWishlist = async (productId) => {
+    if (!user) navigate("/login");
     try {
       const result = await axios.put(
         "http://localhost:3000/users/profile/update/wishlist",
         JSON.stringify({
           productId: productId,
-          userId: user._id,
+          userId: user?._id,
         }),
         {
           headers: {
@@ -102,46 +114,63 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
     }
   };
 
-  console.log(user);
-
+  if (user) console.log(user);
   return (
-    <div className="h-full overflow-y-auto scrollbar-none" ref={containerRef}>
+    <div
+      className="h-full overflow-y-auto scrollbar-none"
+      ref={containerRef}
+      onScroll={handleScroll}
+    >
       <div className="">
-        <h2 className="text-gray-600">{productsCount} Products </h2>
+        <h2 className="text-gray-600">
+          {location.pathname
+            .split("/")
+            .pop()
+            .split("-")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" ")}{" "}
+          {productsCount} Products{" "}
+        </h2>
       </div>
 
       <div className="grid grid-cols-3 gap-2ml-2 mt-2">
         {products.map((item) => (
-          <div className="w-[360px] h-[685px]" key={item._id}>
+          <div className="w-[360px] h-[685px]" key={item?._id}>
             {/* Product Image Section */}
             <div className="w-[360px] h-[550px] bg-gray-100 flex justify-center items-center relative">
-              {item.topTag && (
+              {item?.topTag && (
                 <div
                   className="absolute top-0 left-0 p-2 text-xs font-bold text-white uppercase"
                   style={{
                     backgroundColor:
-                      item.topTag === "BUY 3 FOR"
+                      item?.topTag === "BUY 3 FOR"
                         ? "green"
-                        : item.topTag === "SALE"
+                        : item?.topTag === "SALE"
                         ? "red"
                         : "gray",
                   }}
                 >
-                  {item.topTag === "BUY 3 FOR" ? (
+                  {item?.topTag === "BUY 3 FOR" ? (
                     <>
-                      <span className="uppercase">{item.topTag}</span>
+                      <span className="uppercase">{item?.topTag}</span>
                       <span>{` ₹${item.oprice * 3 - 100}`}</span>
                     </>
                   ) : (
-                    item.topTag
+                    item?.topTag
                   )}
                 </div>
               )}
-              <Link to={`/p/${item.info}`} key={item._id}>
+              <Link
+                to={`/p/${item?.info
+                  ?.split(" ")
+                  ?.map((w) => w.trim())
+                  ?.join("-")}`}
+                key={item?._id}
+              >
                 <img
-                  src={item.image1}
+                  src={item?.image1}
                   className="h-[550px] w-[360px] object-cover"
-                  alt={item.info}
+                  alt={item?.info}
                   onError={(e) => {
                     e.target.src =
                       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFAP-fHSPTb5yLxrT9nlDKdUVPMM_xjCdCxw&s";
@@ -156,11 +185,11 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
             <div className="Details w-[360px] h-[100px] ml-2">
               <div className="flex justify-between">
                 <span className="text-black font-bold text-sm">
-                  {item.brand}
+                  {item?.brand}
                 </span>
                 <div
                   className="cursor-pointer"
-                  onClick={() => handleWishlist(item._id)}
+                  onClick={() => handleWishlist(item?._id)}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -170,7 +199,7 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
                     stroke="currentColor"
                     className="w-6 h-6"
                     style={{
-                      fill: user.myWishlist.includes(item._id)
+                      fill: user?.myWishlist?.some((p) => p._id === item._id)
                         ? "rgb(219,58,52)"
                         : "white",
                     }}
@@ -185,27 +214,28 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
                   </svg>
                 </div>
               </div>
-              <p className="text-gray-600 truncate">{item.description}</p>
+              <p className="text-gray-600 truncate">{item?.description}</p>
               <div className="flex gap-2">
-                <span className="text-black font-bold">₹{item.oprice}</span>
-                {item.price !== item.oprice && (
+                <span className="text-black font-bold">₹{item?.oprice}</span>
+                {item.price !== item?.oprice && (
                   <span className="relative text-gray-500">
                     <span className="absolute top-1/2 left-0 right-0 border-b-2 border-gray-500"></span>
-                    ₹{item.price}
+                    ₹{item?.price}
                   </span>
                 )}
-                {item.price !== item.oprice && (
+                {item?.price !== item?.oprice && (
                   <span className="text-green-500">
-                    {(((item.price - item.oprice) / item.price) * 100).toFixed(
-                      0
-                    )}
+                    {(
+                      ((item?.price - item?.oprice) / item?.price) *
+                      100
+                    ).toFixed(0)}
                     % OFF
                   </span>
                 )}
               </div>
-              {item.bottomTag && (
+              {item?.bottomTag && (
                 <div className="mt-4 border-2 border-black text-xs text-gray-500 text-center">
-                  {item.bottomTag}
+                  {item?.bottomTag}
                 </div>
               )}
             </div>
@@ -242,7 +272,13 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
         </div>
       )}
       {notification.length > 0 && (
-        <div className="fixed bottom-0 left-1/2 w-[300px] bg-green-700 text-white py-2 px-4 flex items-center justify-center rounded-md mb-6">
+        <div
+          className="fixed bottom-0 left-1/2 w-[300px] text-white py-2 px-4 flex items-center justify-center rounded-md mb-6"
+          style={{
+            backgroundColor:
+              notification === "Item added to wishlist" ? "green" : "red",
+          }}
+        >
           <svg
             className="w-6 h-6 mr-2"
             xmlns="http://www.w3.org/2000/svg"

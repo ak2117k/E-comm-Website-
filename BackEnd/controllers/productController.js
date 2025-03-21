@@ -89,27 +89,43 @@ const getProductDetails = async (req, res) => {
 
     // Parse and validate query parameters
     const parseQuery = (param) =>
-      param ? param.split("_").map((p) => p.trim()) : [];
-    const gen = parseQuery(gender);
-    const categories = parseQuery(category);
-    const allsizes = parseQuery(sizes);
-    const brands = parseQuery(brand);
-    const colors = parseQuery(color);
-    const discounts = parseQuery(discount).map(Number);
+      param ? param?.split("_").map((p) => p.trim()) : [];
+    console.log(brand);
+    // const gen = parseQuery(gender);
+    // const categories = parseQuery(category);
+    // const allsizes = parseQuery(sizes);
+    // const brands = parseQuery(brand);
+    // const colors = parseQuery(color);
+    // const discounts = parseQuery(discount).map(Number);
+
+    const gen = gender;
+    const categories = category;
+    const allsizes = sizes;
+    const brands = brand;
+    const colors = color;
+    const discounts = discount?.map(Number);
 
     const sortingType = sort === "High" ? -1 : 1;
     page = isNaN(Number(page)) ? 1 : Number(page);
-    limit = isNaN(Number(limit)) ? 50 : Number(limit);
+    limit = isNaN(Number(limit)) ? 20 : Number(limit);
     const skip = (page - 1) * limit;
 
     // Step 1: Initial pipeline to filter by gender and category and get distinct values
     const initialPipeline = [
-      ...(gen.length > 0 ? [{ $match: { gender: { $in: gen } } }] : []),
-      ...(categories.length > 0
+      ...(gen?.length > 0 ? [{ $match: { gender: { $in: gen } } }] : []),
+      ...(categories?.length > 0
         ? [{ $match: { category: { $in: categories } } }]
         : []),
       {
         $facet: {
+          differentgenders: [
+            { $group: { _id: "$gender" } },
+            { $project: { _id: 0, gender: "$_id" } },
+          ],
+          differentcategories: [
+            { $group: { _id: "$category" } },
+            { $project: { _id: 0, category: "$_id" } },
+          ],
           differentBrands: [
             { $group: { _id: "$brand" } },
             { $project: { _id: 0, brand: "$_id" } },
@@ -134,6 +150,10 @@ const getProductDetails = async (req, res) => {
     const initialResult = await Product.aggregate(initialPipeline).allowDiskUse(
       true
     );
+    const differentGenders =
+      initialResult[0]?.differentgenders.map((item) => item.gender) || [];
+    const differentCategories =
+      initialResult[0]?.differentcategories.map((item) => item.gender) || [];
     const differentBrands =
       initialResult[0]?.differentBrands.map((item) => item.brand) || [];
     const differentColors =
@@ -145,16 +165,16 @@ const getProductDetails = async (req, res) => {
 
     // Step 2: Filter by the additional filters and paginate
     const finalPipeline = [
-      ...(gen.length > 0 ? [{ $match: { gender: { $in: gen } } }] : []),
-      ...(categories.length > 0
+      ...(gen?.length > 0 ? [{ $match: { gender: { $in: gen } } }] : []),
+      ...(categories?.length > 0
         ? [{ $match: { category: { $in: categories } } }]
         : []),
-      ...(colors.length > 0 ? [{ $match: { color: { $in: colors } } }] : []),
-      ...(allsizes.length > 0
+      ...(colors?.length > 0 ? [{ $match: { color: { $in: colors } } }] : []),
+      ...(allsizes?.length > 0
         ? [{ $match: { "productQty.size": { $in: allsizes } } }]
         : []),
-      ...(brands.length > 0 ? [{ $match: { brand: { $in: brands } } }] : []),
-      ...(discounts.length > 0
+      ...(brands?.length > 0 ? [{ $match: { brand: { $in: brands } } }] : []),
+      ...(discounts?.length > 0
         ? [{ $match: { discount: { $in: discounts } } }]
         : []),
       { $sort: { price: sortingType } },
@@ -177,6 +197,8 @@ const getProductDetails = async (req, res) => {
         message: "Products fetched successfully",
         total: totalProducts,
         products: paginatedProducts,
+        differentGenders,
+        differentCategories,
         differentBrands,
         differentColors,
         differentSizes,
@@ -218,22 +240,52 @@ const getProductsaggregate = async (req, res) => {
 // Function to get single product details
 const getsingleProductDetails = async (req, res) => {
   try {
-    const { productId } = req.params;
-    console.log(productId);
-    if (!productId) {
-      return res.status(400).json({ message: "Product ID is required" });
+    // Decode the product info parameter to handle spaces
+    const { info } = req.params;
+    const decodedInfo = decodeURIComponent(info); // Decodes URL-encoded string
+
+    console.log(decodedInfo); // Log the decoded product info
+
+    if (!decodedInfo) {
+      return res.status(400).json({ message: "Product info is required" });
     }
-    const isProduct = await Product.findById(productId);
-    if (!isProduct) {
+
+    // Assuming you have a 'Product' model where 'info' is the field to search
+    const Item = await Product.findOne({ info: decodedInfo });
+
+    if (!Item) {
       return res.status(404).json({ message: "Product not found" });
     }
-    return res.status(200).json({ message: "Product found", isProduct });
+
+    return res.status(200).json({ message: "Product found", Item });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
+const getsingleProductById = async (req, res) => {
+  try {
+    // Decode the product info parameter to handle spaces
+    const { productId } = req.params;
+
+    if (!productId) {
+      return res.status(400).json({ message: "Product id is required" });
+    }
+
+    // Assuming you have a 'Product' model where 'info' is the field to search
+    const Item = await Product.findById(productId);
+
+    if (!Item) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    return res.status(200).json({ message: "Product found", Item });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 // Function to create a new product
 const createProduct = async (req, res) => {
   try {
@@ -331,4 +383,5 @@ module.exports = {
   deleteProduct,
   fetchAndInsertProducts,
   getProductsaggregate,
+  getsingleProductById,
 };

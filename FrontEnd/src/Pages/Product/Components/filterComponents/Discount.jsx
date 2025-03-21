@@ -1,46 +1,74 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
-import { useDispatch } from "react-redux";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 
 const Discount = ({ filters, setFilters }) => {
   const discounts = useSelector((state) => state.product.discounts);
-  const dispatch = useDispatch();
-
   const sortedDiscount = discounts ? [...discounts].sort((a, b) => a - b) : [];
-
-  // State to track whether the discounts list is expanded or not
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showContainer, setShowContainer] = useState(true); // Track the visibility of the container
+  const [showContainer, setShowContainer] = useState(true);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Handle discount filter changes
-  const handleFilterChange = (discount) => {
-    const newFilters = filters.discount.includes(discount)
-      ? filters.discount.filter((d) => d !== discount) // Remove discount
-      : [...filters.discount, discount]; // Add discount
-    setFilters({ ...filters, discount: newFilters });
-  };
-
+  // Sync filters with URL parameters
   useEffect(() => {
-    const savedExpandedState = sessionStorage.getItem("isExpandedDiscount");
-    if (savedExpandedState !== null) {
-      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    const urlDiscounts = searchParams.get("product_discount");
+    if (urlDiscounts) {
+      const discountArray = urlDiscounts.split("_");
+      setFilters((prevFilters) => {
+        if (
+          JSON.stringify(prevFilters.discount.slice().sort()) !==
+          JSON.stringify(discountArray.slice().sort())
+        ) {
+          return { ...prevFilters, discount: discountArray };
+        }
+        return prevFilters;
+      });
     }
-  }, [dispatch]);
 
+    const savedExpandedState =
+      JSON.parse(sessionStorage.getItem("isExpandedDiscount")) || false;
+    setIsExpanded(savedExpandedState);
+  }, [searchParams, setFilters]);
+
+  // Save expanded state to sessionStorage
   useEffect(() => {
-    sessionStorage.setItem("isExpandedDiscount", JSON.stringify(isExpanded)); // Save state to sessionStorage
-  }, [dispatch, isExpanded]);
+    sessionStorage.setItem("isExpandedDiscount", JSON.stringify(isExpanded));
+  }, [isExpanded]);
 
-  // Toggle between showing all discounts or just the first 5
-  const toggleDiscountsView = () => {
-    setIsExpanded((prev) => !prev); // Toggle the state
+  const handleFilterChange = (discount, skipNavigation = false) => {
+    setFilters((prevFilters) => {
+      const newDiscounts = prevFilters.discount.includes(discount)
+        ? prevFilters.discount.filter((d) => d !== discount) // Remove discount
+        : [...prevFilters.discount, discount]; // Add discount
+
+      // Update the URL if required
+      if (!skipNavigation) {
+        const params = new URLSearchParams(location.search);
+        if (newDiscounts.length > 0) {
+          params.set("product_discount", newDiscounts.join("_"));
+        } else {
+          params.delete("product_discount");
+        }
+        navigate(
+          {
+            pathname: location.pathname,
+            search: params.toString(),
+          },
+          { replace: true }
+        );
+      }
+
+      return { ...prevFilters, discount: newDiscounts };
+    });
   };
 
-  // Toggle the visibility of the discount container
-  const handleContainerStatus = () => {
-    setShowContainer((prev) => !prev);
-  };
+  const toggleDiscountsView = () => setIsExpanded((prev) => !prev);
+  const handleContainerStatus = () => setShowContainer((prev) => !prev);
+
+  const validDiscounts = sortedDiscount.filter((discount) => discount !== 0);
 
   return (
     <div className="w-[100%] text-black text-lg border-t border-gray-200 mt-4">
@@ -51,59 +79,48 @@ const Discount = ({ filters, setFilters }) => {
             style={{
               background:
                 filters.discount.length > 0
-                  ? "rgb(32,123,180"
-                  : "rgb(199,203,212",
+                  ? "rgb(32,123,180)"
+                  : "rgb(199,203,212)",
               borderColor:
                 filters.discount.length > 0
-                  ? "rgb(32,123,180"
-                  : "rgb(199,203,212",
+                  ? "rgb(32,123,180)"
+                  : "rgb(199,203,212)",
             }}
-          ></div>{" "}
+          ></div>
           <h4 className="">Discount</h4>
         </div>
         <div className="cursor-pointer" onClick={handleContainerStatus}>
-          {/* Add opacity transition and key for smooth change */}
-          <div className="relative pr-6">
-            <IoIosArrowUp
-              key={showContainer ? "up" : "down"} // Change key to trigger transition
-              className={`absolute transition-opacity duration-700 ${
-                showContainer ? "opacity-100" : "opacity-0"
-              }`}
-            />
-            <IoIosArrowDown
-              key={showContainer ? "down" : "up"} // Change key to trigger transition
-              className={`absolute transition-opacity duration-700 ${
-                showContainer ? "opacity-0" : "opacity-100"
-              }`}
-            />
-          </div>
+          {showContainer ? (
+            <IoIosArrowUp className="absolute transition-opacity duration-700 opacity-100" />
+          ) : (
+            <IoIosArrowDown className="absolute transition-opacity duration-700 opacity-100" />
+          )}
         </div>
       </div>
 
       <div className="ml-2 mt-2">
-        {/* Conditionally render the discount list only when showContainer is true */}
+        {showContainer && validDiscounts.length === 0 && (
+          <p className="text-gray-500 text-sm">No discounts available.</p>
+        )}
         {showContainer &&
-          sortedDiscount
-            ?.slice(0, isExpanded ? sortedDiscount.length : 5)
-            .map((discount) =>
-              discount !== 0 ? (
-                <label
-                  key={discount}
-                  className="flex items-center capitalize text-gray-500 text-sm mb-2"
-                >
-                  <input
-                    type="checkbox"
-                    className="mr-4 text-gray-400 h-4 w-4 cursor-pointer"
-                    checked={filters?.discount?.includes(discount)}
-                    onChange={() => handleFilterChange(discount)}
-                  />
-                  {discount}% Or More
-                </label>
-              ) : null
-            )}
+          validDiscounts
+            .slice(0, isExpanded ? validDiscounts.length : 5)
+            .map((discount) => (
+              <label
+                key={discount}
+                className="flex items-center capitalize text-gray-500 text-sm mb-2"
+              >
+                <input
+                  type="checkbox"
+                  className="mr-4 text-gray-400 h-4 w-4 cursor-pointer"
+                  checked={filters?.discount?.includes(discount)}
+                  onChange={() => handleFilterChange(discount)}
+                />
+                {discount}% Or More
+              </label>
+            ))}
 
-        {/* Show/Hide button for toggling discount list */}
-        {showContainer && (
+        {showContainer && validDiscounts.length > 5 && (
           <button
             onClick={toggleDiscountsView}
             className="text-[rgb(69,165,165)] underline font-semibold text-sm"

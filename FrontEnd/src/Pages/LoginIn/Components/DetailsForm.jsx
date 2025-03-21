@@ -56,14 +56,14 @@ const DetailsForm = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log("Email:", email);
-    console.log("Password:", password);
+    // console.log("Email:", email);
+    // console.log("Password:", password);
 
     try {
       const userCheck = await userValidation();
-      console.log(userCheck.data.findUser);
+      console.log(userCheck?.data?.findUser);
       if (userCheck.status === 200) {
-        const cart = await getCart(userCheck.data.findUser._id);
+        const cart = await getCart(userCheck?.data?.findUser._id);
         const cookieValue = JSON.stringify(userCheck.data.findUser);
         const cartCookie = JSON.stringify(cart);
         const expirationTime = new Date();

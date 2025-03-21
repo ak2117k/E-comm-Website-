@@ -16,92 +16,7 @@ const NavBar = () => {
   const user = useSelector((state) => state.user.user);
   const cart = useSelector((state) => state.cart.cart);
   const wishlistItems = useSelector((state) => state.wishlist);
-
-  const getCookieValue = (key) => {
-    const cookieString = document.cookie;
-    const cookies = cookieString.split("; ").reduce((acc, current) => {
-      const [cookieKey, cookieValue] = current.split("=");
-      acc[cookieKey] = cookieValue;
-      return acc;
-    }, {});
-    try {
-      return cookies[key] ? JSON.parse(decodeURIComponent(cookies[key])) : null;
-    } catch (error) {
-      console.error("Error parsing cookie:", error);
-      return null;
-    }
-  };
-
-  useEffect(() => {
-    const userCookie = getCookieValue("user");
-    // const cartCookie = getCookieValue("userCart");
-
-    console.log(userCookie);
-    // console.log(cartCookie);
-
-    if (userCookie) {
-      dispatch(addUser(userCookie));
-      sendToWishlist(userCookie.myWishlist);
-    }
-    // if (cartCookie?.items?.length > 0) {
-    //   sendToCart(cartCookie?.items);
-    // }
-  }, [dispatch]);
-
-  // Batch API requests for Wishlist
-  const sendToWishlist = async (wishlistedItems) => {
-    if (wishlistedItems.length === 0) return;
-
-    try {
-      const products = await Promise.all(
-        wishlistedItems.map(async (itemId) => {
-          const result = await axios.get(
-            `http://localhost:3000/product/getProducts/${itemId}`
-          );
-          return result.data.productdetails;
-        })
-      );
-
-      dispatch(clearWishlist());
-      dispatch(addtoWishlist(products));
-    } catch (error) {
-      console.log("Error fetching wishlist items:", error);
-    }
-  };
-
-  // Batch API requests for Cart
-  const sendToCart = async (cartItems) => {
-    console.log(cartItems);
-    if (cartItems.length === 0) return;
-
-    try {
-      const products = await Promise.all(
-        cartItems.map(async (item) => {
-          console.log(item);
-          const productId = item.productId;
-          if (productId) {
-            const id =
-              typeof productId === "string" ? productId : productId._id;
-            const result = await axios.get(
-              `http://localhost:3000/product/getProducts/${id}`
-            );
-
-            const productData = result.data.isProduct;
-
-            return {
-              ...productData,
-              size: item.size, // Add the size from the cart item
-              quantity: item.quantity, // Add the quantity from the cart itema
-            };
-          }
-        })
-      );
-      dispatch(clearCart());
-      dispatch(add(products));
-    } catch (error) {
-      console.log("Error fetching cart items:", error);
-    }
-  };
+  const [isHovered, setIsHovered] = useState(false);
 
   // Handle search input change with debounce
   const handleSearchValChange = debounce((e) => {
@@ -114,6 +29,14 @@ const NavBar = () => {
       navigate(`/products/${searchVal}`);
       setSearchVal("");
     }
+  };
+  const handleMouseEnter = () => {
+    console.log("yess");
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
   };
 
   return (
@@ -140,7 +63,7 @@ const NavBar = () => {
               <ul className="flex space-x-4">
                 <li className="list-none inline-flex">
                   <Link
-                    to="/products/men"
+                    to="/men-clothing"
                     className="no-underline text-black-400 hover:underline hover:decoration-yellow-500 hover:decoration-4"
                   >
                     Men
@@ -148,7 +71,7 @@ const NavBar = () => {
                 </li>
                 <li className="inline-block text-black">
                   <Link
-                    to="/products/women"
+                    to="/women-clothing"
                     className="no-underline text-black-400 hover:underline hover:decoration-yellow-500 hover:decoration-4"
                   >
                     Women
@@ -197,30 +120,55 @@ const NavBar = () => {
                   <div className="inline-block">
                     <span className="text-gray-400 text-[20px]">|</span>
                   </div>
-                  <div className="inline-block w-auto">
+                  <div className="inline-block w-auto relative">
                     {user ? (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 64 64"
-                        width="34"
-                        height="34"
-                        className="cursor-pointer"
+                      <div
+                        className=""
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
                       >
-                        <circle
-                          cx="32"
-                          cy="24"
-                          r="12"
-                          stroke="black"
-                          strokeWidth="2"
-                          fill="none"
-                        />
-                        <path
-                          d="M32 38c-12 0-18 6-18 6v4h36v-4s-6-6-18-6z"
-                          stroke="black"
-                          strokeWidth="2"
-                          fill="none"
-                        />
-                      </svg>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 64 64"
+                          width="34"
+                          height="34"
+                          className="cursor-pointer"
+                        >
+                          <circle
+                            cx="32"
+                            cy="24"
+                            r="12"
+                            stroke="black"
+                            strokeWidth="2"
+                            fill="none"
+                          />
+                          <path
+                            d="M32 38c-12 0-18 6-18 6v4h36v-4s-6-6-18-6z"
+                            stroke="black"
+                            strokeWidth="2"
+                            fill="none"
+                          />
+                        </svg>
+                        {isHovered && (
+                          <div className="absolute top-8 left-0 mt-1 right-4 w-40 bg-white rounded-md shadow-lg z-10">
+                            <ul className="space-y-2 p-2">
+                              {/* Wrap each menu item in a Link for navigation */}
+                              <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                                <Link to="/myaccount">Account</Link>
+                              </li>
+                              <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                                <Link to="/myaccount/orders">Orders</Link>
+                              </li>
+                              <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                                <Link to="/myaccount/wishlist">Wishlist</Link>
+                              </li>
+                              <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                                <Link to="myaccount/addresses">Address</Link>
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <Link to="/login">
                         <span className="text-[13px] font-[500] w-auto h-auto">
@@ -251,7 +199,7 @@ const NavBar = () => {
                     </Link>
                   </div>
 
-                  <div className="inline-block">
+                  <div className="inline-block relative">
                     <Link to="/cart">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -268,6 +216,9 @@ const NavBar = () => {
                           d="M.75 4.8c0-.02.003-.037.006-.05h14.488c.003.013.006.03.006.05v14.4c0 .02-.003.037-.006.05H.756a.196.196 0 0 1-.006-.05V4.8ZM4.5 3.75c0-.73.395-1.429 1.098-1.945C6.302 1.29 7.255 1 8.25 1c.995 0 1.948.29 2.652.805C11.605 2.321 12 3.021 12 3.75"
                         />
                       </svg>
+                      <span className="p-1 flex justify-center items-center rounded-full absolute  bottom-6 left-2 bg-[rgb(255,210,50)] text-black w-6 h-6 font-xs">
+                        {cart?.length}
+                      </span>
                     </Link>
                   </div>
                 </div>

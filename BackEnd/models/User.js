@@ -14,12 +14,27 @@ const addressSchema = new mongoose.Schema({
     required: true,
   },
   postalCode: {
-    type: Number,
+    type: String,
     required: true,
   },
   contactNumber: {
-    type: Number,
+    type: String,
     required: true,
+  },
+  country: {
+    type: String,
+    required: true,
+  },
+  flatNoOrBuildingNameAndStreetName: {
+    type: String,
+    required: true,
+  },
+  AreaoRLocality: {
+    type: String,
+    required: true,
+  },
+  LandMark: {
+    type: String,
   },
 });
 
@@ -94,14 +109,12 @@ const userSchema = mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
-        required: true,
       },
     ],
     myCart: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
+        ref: "Cart",
       },
     ],
   },

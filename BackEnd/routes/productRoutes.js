@@ -5,6 +5,7 @@ const {
   updateProductDetails,
   deleteProduct,
   getProductsaggregate,
+  getsingleProductById,
 } = require("../controllers/productController");
 
 const express = require("express");
@@ -12,7 +13,8 @@ const express = require("express");
 const router = express.Router();
 
 router.get("/getProducts", getProductDetails);
-router.get("/getProducts/:productId", getsingleProductDetails);
+router.get("/p/:info", getsingleProductDetails);
 router.put("/updateProduct", updateProductDetails);
 router.get("/getProductsaggregate", getProductsaggregate);
+router.get("/getProducts/:productId", getsingleProductById);
 module.exports = router;

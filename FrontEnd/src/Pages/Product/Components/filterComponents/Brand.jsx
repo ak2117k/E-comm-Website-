@@ -2,12 +2,17 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 const Brand = ({ filters, setFilters }) => {
   const Brands = useSelector((state) => state.product.brands);
-  const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Create a copy of the array and then sort it
+  // Create a sorted copy of the brands array
   const sortedBrands = Brands
     ? [...Brands].sort((a, b) =>
         a.localeCompare(b, undefined, { sensitivity: "base" })
@@ -18,33 +23,42 @@ const Brand = ({ filters, setFilters }) => {
   const [showContainer, setShowContainer] = useState(true);
 
   useEffect(() => {
+    const urlBrands = searchParams.get("manufacturer_brand");
+
+    // Load expanded state from sessionStorage
     const savedExpandedState = sessionStorage.getItem("isExpandedBrands");
-    const BrandsSelected = sessionStorage.getItem("selectedBrands");
     if (savedExpandedState !== null) {
-      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+      setIsExpanded(JSON.parse(savedExpandedState));
     }
-    // if (BrandsSelected !== null) {
-    //   const selectedBrands = JSON.parse(BrandsSelected); // Parse it as an array
-    //   setFilters((prevFilters) => ({
-    //     ...prevFilters,
-    //     brand: selectedBrands,
-    //   }));
-    // }
-  }, [dispatch]);
+
+    // Process brands from URL
+    if (urlBrands) {
+      const brandsArray = urlBrands.split("_");
+      setFilters((prev) => ({
+        ...prev,
+        brand: brandsArray,
+      }));
+    }
+  }, [searchParams]); // Empty dependency ensures this runs only on mount
 
   useEffect(() => {
-    sessionStorage.setItem("isExpandedBrands", JSON.stringify(isExpanded)); // Save state to sessionStorage
-  }, [dispatch, isExpanded]);
-
-  // useEffect(() => {
-  //   sessionStorage.setItem("selectedBrands", JSON.stringify([filters.brand]));
-  // }, [dispatch]);
+    // Save expanded state to sessionStorage
+    sessionStorage.setItem("isExpandedBrands", JSON.stringify(isExpanded));
+  }, [isExpanded]); // Runs only when `isExpanded` changes
 
   const handleFilterChange = (brand) => {
-    const newFilters = filters.brand.includes(brand)
+    const updatedBrands = filters.brand.includes(brand)
       ? filters.brand.filter((b) => b !== brand)
       : [...filters.brand, brand];
-    setFilters({ ...filters, brand: newFilters });
+
+    setFilters({ ...filters, brand: updatedBrands });
+    const params = new URLSearchParams(location.search);
+    if (updatedBrands.length > 0) {
+      params.set("manufacturer_brand", updatedBrands.join("_"));
+    } else {
+      params.delete("manufacturer_brand");
+    }
+    navigate({ pathname: location.pathname, search: params.toString() });
   };
 
   // Handle Show/Hide button click
@@ -52,9 +66,9 @@ const Brand = ({ filters, setFilters }) => {
     setIsExpanded((prev) => !prev); // Toggle between true and false
   };
 
-  function handleContainerStatus() {
+  const handleContainerStatus = () => {
     setShowContainer((prev) => !prev);
-  }
+  };
 
   return (
     <div className="w-[100%] text-black text-lg border-t border-gray-200 mt-4">
@@ -64,24 +78,25 @@ const Brand = ({ filters, setFilters }) => {
             className="h-2 w-2 border-2 rounded-full"
             style={{
               background:
-                filters.brand.length > 0 ? "rgb(32,123,180" : "rgb(199,203,212",
+                filters.brand.length > 0
+                  ? "rgb(32,123,180)"
+                  : "rgb(199,203,212)",
               borderColor:
-                filters.brand.length > 0 ? "rgb(32,123,180" : "rgb(199,203,212",
+                filters.brand.length > 0
+                  ? "rgb(32,123,180)"
+                  : "rgb(199,203,212)",
             }}
           ></div>
           <h4>Brands</h4>
         </div>
         <div className="cursor-pointer" onClick={handleContainerStatus}>
-          {/* Add opacity transition and key for smooth change */}
           <div className="relative pr-6">
             <IoIosArrowUp
-              key={showContainer ? "up" : "down"} // Change key to trigger transition
               className={`absolute transition-opacity duration-700 ${
                 showContainer ? "opacity-100" : "opacity-0"
               }`}
             />
             <IoIosArrowDown
-              key={showContainer ? "down" : "up"} // Change key to trigger transition
               className={`absolute transition-opacity duration-700 ${
                 showContainer ? "opacity-0" : "opacity-100"
               }`}
@@ -104,7 +119,7 @@ const Brand = ({ filters, setFilters }) => {
                   checked={filters?.brand?.includes(brand)}
                   onChange={() => handleFilterChange(brand)}
                 />
-                <span className="">{brand}</span>
+                <span>{brand}</span>
               </label>
             ))}
         {showContainer && (

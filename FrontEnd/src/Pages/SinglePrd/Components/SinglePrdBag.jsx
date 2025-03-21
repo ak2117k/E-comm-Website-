@@ -1,52 +1,89 @@
-import React, { useState } from "react";
-import { add } from "../../../Storee/CartSlice";
+import React, { useState, useEffect } from "react";
+import { add, clearCart } from "../../../Storee/CartSlice";
 import {
   addtoWishlist,
   removefromWishlist,
 } from "../../../Storee/WishlistSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { addUser } from "../../../Storee/User";
 
 const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
-  const wishlistProducts = useSelector((state) => state.wishlist);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const user = useSelector((state) => state.user.user);
   const [openSizeCont, setOpenSizeCont] = useState(false);
   const [selectedSize, setSelectedSize] = useState(Size);
   const [notification, setNotification] = useState(null);
   const [isAddedToBag, setIsAddedToBag] = useState(false);
 
-  function handleAddToBag() {
-    if (!selectedSize || selectedSize === "null") {
+  useEffect(() => {
+    // Trigger API call after selectedSize is updated.
+    if (selectedSize) {
+      handleAddToBag();
+    }
+  }, [dispatch, selectedSize]); // This will run the effect when selectedSize changes.
+
+  async function handleAddToBag() {
+    if (Size === null) {
       setOpenSizeCont(true);
       return;
     }
+    try {
+      const result = await axios.put(
+        "http://localhost:3000/cart/addUpdate",
+        JSON.stringify({
+          userId: user._id,
+          productId: Product._id,
+          size: selectedSize || Size,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      dispatch(clearCart());
+      dispatch(add(result.data.result));
+      setNotification("Product added to cart successfully!");
+      setIsAddedToBag(true);
+      setOpenSizeCont(false);
+      const cartCookie = JSON.stringify(result.data.result);
+      document.cookie = `userCart=${encodeURIComponent(cartCookie)};path=/;`;
 
-    const finalProduct = { ...Product, Size: selectedSize, Qty: 1 };
-    dispatch(add(finalProduct));
-
-    setNotification("Product added to cart successfully!");
-    setIsAddedToBag(true);
-    setOpenSizeCont(false);
-
-    setTimeout(() => {
-      setNotification(null);
-    }, 3000);
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  function handleAddToWishlist(item) {
-    const isWishlisted = wishlistProducts.find(
-      (product) => product.id === item.id
-    );
-    if (isWishlisted) {
-      dispatch(removefromWishlist(item.id));
-      setWishlistNotification("Product removed from wishlist!");
-    } else {
-      dispatch(addtoWishlist(item));
-      setWishlistNotification("Successfully added to wishlist!");
+  async function handleAddToWishlist(item) {
+    try {
+      const result = await axios.put(
+        "http://localhost:3000/users/profile/update/wishlist",
+        JSON.stringify({
+          userId: user._id,
+          productId: item._id,
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (result.status === 200) {
+        setNotification(result.data.message);
+        dispatch(addUser(result.data.result));
+        const updatedUSerdata = JSON.stringify(result.data.result);
+        document.cookie = `user=${encodeURIComponent(updatedUSerdata)};path=/;`;
+      }
+    } catch (error) {
+      console.log(error);
     }
+
     setTimeout(() => {
-      setWishlistNotification("");
+      setNotification("");
     }, 3000);
   }
 
@@ -117,11 +154,7 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
             viewBox="0 0 24 24"
             className="mr-2 text-[24px]"
             style={{
-              fill: wishlistProducts?.find(
-                (product) => product.id === Product.id
-              )
-                ? "red"
-                : "white",
+              fill: user?.myWishlist?.includes(Product._id) ? "red" : "white",
             }}
           >
             <path
@@ -132,16 +165,14 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
               d="M12 20S3 14.91 3 8.727c0-1.093.375-2.152 1.06-2.997a4.672 4.672 0 0 1 2.702-1.638 4.639 4.639 0 0 1 3.118.463A4.71 4.71 0 0 1 12 6.909a4.71 4.71 0 0 1 2.12-2.354 4.639 4.639 0 0 1 3.118-.463 4.672 4.672 0 0 1 2.701 1.638A4.756 4.756 0 0 1 21 8.727C21 14.91 12 20 12 20Z"
             ></path>
           </svg>
-          {wishlistProducts?.find((product) => product.id === Product.id)
-            ? "WISHLISTED"
-            : "WISHLIST"}
+          {user?.myWishlist?.includes(Product._id) ? "WISHLISTED" : "WISHLIST"}
         </button>
       </div>
 
       {openSizeCont && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
           <div
-            className="w-[350px] h-auto overflow-y-auto bg-white p-4 rounded-lg relative"
+            className="w-[450px] h-auto overflow-y-auto bg-white p-4 rounded-lg relative"
             tabIndex="-1"
             autoFocus
           >
@@ -149,18 +180,11 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
               onClick={handleCloseSizeCont}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                width="24"
-                height="24"
-              >
-                <path d="M6.293 6.293a1 1 0 0 1 1.414 0L12 9.586l4.293-4.293a1 1 0 1 1 1.414 1.414L13.414 11l4.293 4.293a1 1 0 1 1-1.414 1.414L12 12.414l-4.293 4.293a1 1 0 1 1-1.414-1.414L10.586 11 6.293 6.707a1 1 0 0 1 0-1.414z" />
-              </svg>
+              X
             </button>
 
-            <div className="text-center">
+            {/* Size Selection Grid */}
+            <div className="grid grid-cols-7 gap-6 text-center sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 p-2">
               {Object.keys(sizeStock).map((size) => {
                 const stock = sizeStock[size];
                 let borderColor = "black";
@@ -196,18 +220,21 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
                         {stockText}
                       </h3>
                     )}
-                    {selectedSize === size && stock > 0 && (
-                      <div className="mt-2 text-sm text-gray-600">
-                        <p>Bust: {getDimensions(size).Bust}</p>
-                        <p>Front Length: {getDimensions(size).Length}</p>
-                        <p>Sleeve Length: {getDimensions(size).Sleeve}</p>
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
 
+            {/* Display dimensions once a size is selected */}
+            {selectedSize && (
+              <div className="mt-4 text-sm text-gray-600 w-full">
+                <p>Bust: {getDimensions(selectedSize).Bust}</p>
+                <p>Front Length: {getDimensions(selectedSize).Length}</p>
+                <p>Sleeve Length: {getDimensions(selectedSize).Sleeve}</p>
+              </div>
+            )}
+
+            {/* Add to Bag Button */}
             <button
               className={`w-full mt-4 p-2 rounded-lg font-semibold ${
                 selectedSize

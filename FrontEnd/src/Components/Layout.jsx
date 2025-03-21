@@ -1,9 +1,8 @@
 import React from "react";
 import NavBar from "./NavBar.jsx";
 import { Outlet, useLocation } from "react-router-dom";
-import store from "../Storee/Store.js";
-import { Provider } from "react-redux";
 import { useEffect } from "react";
+import Footer from "./Footer.jsx";
 
 const Layout = () => {
   const location = useLocation();
@@ -19,12 +18,13 @@ const Layout = () => {
     }
   }, [location]);
   return (
-    <Provider store={store}>
+    <>
       <NavBar />
       <div className="Content">
         <Outlet />
       </div>
-    </Provider>
+      <Footer />
+    </>
   );
 };
 

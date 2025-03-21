@@ -15,50 +15,6 @@ const Items = () => {
   const [openSizeContainers, setOpenSizeContainers] = useState({}); // Track open size containers per item
   const [selectedSizes, setSelectedSizes] = useState({}); // Track selected size for each item
   const [sizes, setSizes] = useState([]); // Sizes available for a specific product
-  const [loading, setLoading] = useState(true);
-
-  // Fetch product details by productId
-  async function fetchProductDetails(productId) {
-    try {
-      const result = await axios.get(
-        `http://localhost:3000/product/getProducts/${productId}`
-      );
-      if (result.status === 200) {
-        return result.data.isProduct;
-      }
-    } catch (error) {
-      console.log("Error fetching product details", error);
-      return null; // Return null in case of error
-    }
-  }
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      if (!user || !user.myWishlist || user.myWishlist.length === 0) return;
-
-      // Array to store product fetch promises
-      const itemPromises = user.myWishlist.map((itemId) =>
-        fetchProductDetails(itemId)
-      );
-
-      try {
-        // Wait for all product fetch promises to resolve
-        const products = await Promise.all(itemPromises);
-
-        // Filter out any null or undefined products (in case fetch fails)
-        const validProducts = products.filter(Boolean);
-
-        // Set valid products to state
-        setWishtedItems(validProducts);
-      } catch (error) {
-        console.log("Error fetching products", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [dispatch, user]); // Re-run effect when `user` changes
 
   const handleRemoveFromWhishlist = async (productId) => {
     try {
@@ -79,18 +35,6 @@ const Items = () => {
       if (result.status === 200) {
         setNotification(result.data.message);
         dispatch(addUser(result.data.result));
-
-        setWishtedItems((prevItems) =>
-          prevItems.filter((item) => item._id !== productId)
-        );
-
-        const updatedUSerdata = JSON.stringify(result.data.result);
-        const expirationTime = new Date();
-        expirationTime.setTime(expirationTime.getTime() + 604800000);
-        document.cookie = `user=${encodeURIComponent(
-          updatedUSerdata
-        )};expires=${expirationTime.toUTCString()};path=/;`;
-        setTimeout(() => setNotification(""), 3000);
       }
     } catch (error) {
       console.error("Error updating wishlist", error); // Handle error
@@ -134,11 +78,12 @@ const Items = () => {
       );
 
       const result2 = await axios.put(
-        "http://localhost:3000/cart/addUpdate",
+        "http://localhost:3000/users/addToCart",
         JSON.stringify({
           userId: user._id,
           productId: productId,
           size: selectedSize,
+          quantity: 1,
         }),
         {
           headers: {
@@ -149,20 +94,7 @@ const Items = () => {
       console.log(result2.data.result, result1.data.result);
 
       if (result1.status === 200 && result2.status === 200) {
-        dispatch(addUser(result1.data.result));
-        dispatch(clearCart());
-        dispatch(add(result2.data.result));
-
-        // Update local state to remove the item from the wishlist
-        setWishtedItems((prevItems) =>
-          prevItems.filter((item) => item._id !== productId)
-        );
-
-        const cookieValue = JSON.stringify(result1.data.result);
-        const cartCookie = JSON.stringify(result2.data.result);
-
-        document.cookie = `user=${encodeURIComponent(cookieValue)};path=/;`;
-        document.cookie = `userCart=${encodeURIComponent(cartCookie)};path=/;`;
+        dispatch(addUser(result2.data.result));
 
         // Close the size container modal
         setOpenSizeContainers((prev) => ({
@@ -186,16 +118,8 @@ const Items = () => {
   return (
     <div>
       {user?.myWishlist?.length === 0 && <ShopNow />}
-      {loading && user?.myWishlist?.length > 0 && (
-        <div className="flex w-[100%] h-[100%] justify-center mt-[100px] bg-opacity-50">
-          <img
-            src="https://www.bewakoof.com/images/bwkf-loader.gif"
-            className="h-[270px] w-[270px] justify-center"
-          />
-        </div>
-      )}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-[200px]">
-        {wishlistedItems.map((item) => (
+        {user?.myWishlist?.map((item) => (
           <div className="w-[270px] h-[460px]" key={item._id}>
             {/* Product Image Section */}
             <div className="w-[270px] h-[270px] bg-gray-100 flex justify-center items-center relative">

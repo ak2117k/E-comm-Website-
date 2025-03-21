@@ -1,4 +1,6 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+
 import Brand from "./filterComponents/Brand";
 import Category from "./filterComponents/Category";
 import Gender from "./filterComponents/Gender";
@@ -10,6 +12,10 @@ import { useSelector } from "react-redux";
 const Filter = ({ setFilters, filters, allSizes, topSizes, bottomSizes }) => {
   const allGender = useSelector((state) => state.product.gender);
   const discounts = useSelector((state) => state.product.discounts);
+  const categories = useSelector((state) => state.product.category);
+  console.log("categories", categories);
+
+  const navigate = useNavigate();
 
   const handleClearFilter = () => {
     setFilters({
@@ -21,6 +27,7 @@ const Filter = ({ setFilters, filters, allSizes, topSizes, bottomSizes }) => {
       color: [],
       discount: [],
     });
+    navigate(window.location.pathname, { replace: true });
   };
 
   const filtersCount = Object.values(filters).filter(
@@ -44,18 +51,18 @@ const Filter = ({ setFilters, filters, allSizes, topSizes, bottomSizes }) => {
       </div>
 
       {/* Render Gender filter */}
-      {allGender.length > 1 && (
+      {/* {allGender.length > 1 && (
         <div>
           <Gender filters={filters} setFilters={setFilters} />
         </div>
-      )}
+      )} */}
 
       {/* Render Category filter */}
-      {allGender.length === 1 && (
+      {/* {allGender.length === 1 && (
         <div>
           <Category filters={filters} setFilters={setFilters} />
         </div>
-      )}
+      )} */}
 
       {/* Render Size filter */}
       <div>

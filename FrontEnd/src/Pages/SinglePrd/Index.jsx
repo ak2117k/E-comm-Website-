@@ -13,21 +13,20 @@ import ProductDescription from "./Components/ProductDescription";
 import Return from "./Components/Return";
 import Tags from "./Components/Tags";
 import Reviews from "./Components/Reviews";
+import axios from "axios";
 
 const Index = () => {
-  const singleProduct = useSelector((state) => state.data.singleProduct);
-  const error = useSelector((state) => state.data.error);
-  const loader = useSelector((state) => state.data.isLoading);
+  const [loader, setLoader] = useState(false);
+  const [singleProduct, setSingleProduct] = useState(null);
+
+  const dispatch = useDispatch();
+  const productParams = useParams();
+
+  console.log(productParams);
 
   const [imagePtr, setImagePtr] = useState({});
   const [imgArr, setImgArr] = useState([]);
   const [mainImage, setMainImage] = useState(null);
-  const productParams = useParams();
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(getProductById(productParams.id));
-  }, [productParams, dispatch]);
 
   useEffect(() => {
     if (singleProduct) {
@@ -48,7 +47,7 @@ const Index = () => {
         setImagePtr(newPtr);
       }
     }
-  }, [singleProduct]);
+  }, [dispatch, singleProduct]);
 
   function handleImageChange(image) {
     let newPtr = { ...imagePtr };
@@ -58,6 +57,31 @@ const Index = () => {
     newPtr[image] = true;
     setMainImage(image);
   }
+
+  useEffect(() => {
+    const info = productParams.info
+      .split("-")
+      .map((w) => w.trim())
+      .join(" ");
+    const fetchproduct = async () => {
+      setLoader(true);
+      try {
+        const result = await axios.get(
+          `http://localhost:3000/product/p/${encodeURIComponent(info)}`
+        );
+        if (result.status === 200) {
+          setSingleProduct(result.data.Item);
+        }
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoader(false);
+      }
+    };
+    fetchproduct();
+  }, [dispatch, productParams]);
+
+  if (singleProduct) console.log(singleProduct);
 
   return (
     <div>
@@ -70,8 +94,8 @@ const Index = () => {
           />
         </div>
       )}
-      {!loader && !error && singleProduct && (
-        <div className="flex border-2 border-red-500 h-screen w-[1250px] ml-[140px] mt-8">
+      {!loader && singleProduct && (
+        <div className="flex h-screen w-[1250px] ml-[140px] mt-8">
           <div className="h-screen w-[680px] ">
             <SinglePrdCrousel
               singleProduct={singleProduct}

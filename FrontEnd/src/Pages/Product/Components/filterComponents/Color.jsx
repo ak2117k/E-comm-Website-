@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
-import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 const Color = ({ filters, setFilters }) => {
   const colors = useSelector((state) => state.product.colors);
-  const dispatch = useDispatch();
-  console.log(colors);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Filter out null/undefined and sort alphabetically
   const sortedColors = colors
@@ -19,31 +22,56 @@ const Color = ({ filters, setFilters }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showContainer, setShowContainer] = useState(true); // Toggle for container visibility
 
+  useEffect(() => {
+    const urlColors = searchParams.get("color");
+    if (urlColors) {
+      const colorArray = urlColors.split("_");
+      setFilters((prev) => ({
+        ...prev,
+        color: colorArray,
+      }));
+    }
+
+    // Load expanded state from sessionStorage
+    const savedExpandedState = sessionStorage.getItem("isExpandedColor");
+    if (savedExpandedState !== null) {
+      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    }
+  }, [searchParams, setFilters]); // Sync filters from URL params
+
+  useEffect(() => {
+    sessionStorage.setItem("isExpandedColor", JSON.stringify(isExpanded)); // Save expanded state
+  }, [isExpanded]);
+
   // Handle color filter changes
   const handleFilterChange = (color) => {
     const newFilters = filters.color.includes(color)
       ? filters.color.filter((c) => c !== color) // Remove color
       : [...filters.color, color]; // Add color
+
     setFilters({ ...filters, color: newFilters });
-  };
 
-  useEffect(() => {
-    const savedExpandedState = sessionStorage.getItem("isExpandedColor");
-    if (savedExpandedState !== null) {
-      setIsExpanded(JSON.parse(savedExpandedState)); // Set the initial state from sessionStorage
+    // Update URL parameters based on new filter values
+    const params = new URLSearchParams(location.search);
+    if (newFilters.length > 0) {
+      params.set("color", newFilters.join("_"));
+    } else {
+      params.delete("color");
     }
-  }, [dispatch]);
 
-  useEffect(() => {
-    sessionStorage.setItem("isExpandedColor", JSON.stringify(isExpanded)); // Save state to sessionStorage
-  }, [dispatch, isExpanded]);
-
-  // Toggle between showing all colors or just the first 5
-  const toggleColorsView = () => {
-    setIsExpanded((prev) => !prev); // Toggle the state
+    // Update the URL without reloading the page
+    navigate({
+      pathname: location.pathname,
+      search: params.toString(),
+    });
   };
 
-  // Toggle the visibility of the color container
+  // Handle Show/Hide button click
+  const toggleColorsView = () => {
+    setIsExpanded((prev) => !prev); // Toggle the expanded state
+  };
+
+  // Handle the visibility of the color container
   const handleContainerStatus = () => {
     setShowContainer((prev) => !prev);
   };
@@ -56,24 +84,25 @@ const Color = ({ filters, setFilters }) => {
             className="h-2 w-2 border-2 rounded-full"
             style={{
               background:
-                filters.color.length > 0 ? "rgb(32,123,180" : "rgb(199,203,212",
+                filters.color.length > 0
+                  ? "rgb(32,123,180)"
+                  : "rgb(199,203,212)",
               borderColor:
-                filters.color.length > 0 ? "rgb(32,123,180" : "rgb(199,203,212",
+                filters.color.length > 0
+                  ? "rgb(32,123,180)"
+                  : "rgb(199,203,212)",
             }}
-          ></div>{" "}
-          <h4 className="">Color</h4>
+          ></div>
+          <h4>Color</h4>
         </div>
         <div className="cursor-pointer" onClick={handleContainerStatus}>
-          {/* Add opacity transition and key for smooth change */}
           <div className="relative pr-6">
             <IoIosArrowUp
-              key={showContainer ? "up" : "down"} // Change key to trigger transition
               className={`absolute transition-opacity duration-700 ${
                 showContainer ? "opacity-100" : "opacity-0"
               }`}
             />
             <IoIosArrowDown
-              key={showContainer ? "down" : "up"} // Change key to trigger transition
               className={`absolute transition-opacity duration-700 ${
                 showContainer ? "opacity-0" : "opacity-100"
               }`}
