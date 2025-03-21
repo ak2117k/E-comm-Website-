@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { add, clearCart } from "../../../Storee/CartSlice";
-import {
-  addtoWishlist,
-  removefromWishlist,
-} from "../../../Storee/WishlistSlice";
+
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -18,13 +14,6 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
   const [notification, setNotification] = useState(null);
   const [isAddedToBag, setIsAddedToBag] = useState(false);
 
-  useEffect(() => {
-    // Trigger API call after selectedSize is updated.
-    if (selectedSize) {
-      handleAddToBag();
-    }
-  }, [dispatch, selectedSize]); // This will run the effect when selectedSize changes.
-
   async function handleAddToBag() {
     if (Size === null) {
       setOpenSizeCont(true);
@@ -32,11 +21,12 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
     }
     try {
       const result = await axios.put(
-        "http://localhost:3000/cart/addUpdate",
+        "http://localhost:3000/users/addToCart",
         JSON.stringify({
           userId: user._id,
           productId: Product._id,
           size: selectedSize || Size,
+          quantity: "1",
         }),
         {
           headers: {
@@ -44,13 +34,10 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
           },
         }
       );
-      dispatch(clearCart());
-      dispatch(add(result.data.result));
+      dispatch(addUser(result.data.result));
       setNotification("Product added to cart successfully!");
       setIsAddedToBag(true);
       setOpenSizeCont(false);
-      const cartCookie = JSON.stringify(result.data.result);
-      document.cookie = `userCart=${encodeURIComponent(cartCookie)};path=/;`;
 
       setTimeout(() => {
         setNotification(null);
@@ -60,32 +47,32 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
     }
   }
 
-  async function handleAddToWishlist(item) {
+  const handleWishlist = async (productId) => {
+    if (!user) navigate("/login");
     try {
       const result = await axios.put(
         "http://localhost:3000/users/profile/update/wishlist",
         JSON.stringify({
-          userId: user._id,
-          productId: item._id,
+          productId: productId,
+          userId: user?._id,
         }),
         {
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json", // Common header for JSON requests
+          },
         }
       );
+
+      // Optionally handle the result if needed
       if (result.status === 200) {
-        setNotification(result.data.message);
-        dispatch(addUser(result.data.result));
-        const updatedUSerdata = JSON.stringify(result.data.result);
-        document.cookie = `user=${encodeURIComponent(updatedUSerdata)};path=/;`;
+        await setNotification(result.data.message);
+        await dispatch(addUser(result.data.result));
+        setTimeout(() => setNotification(""), 3000);
       }
     } catch (error) {
-      console.log(error);
+      console.error("Error updating wishlist", error); // Handle error
     }
-
-    setTimeout(() => {
-      setNotification("");
-    }, 3000);
-  }
+  };
 
   function handleCloseSizeCont() {
     setOpenSizeCont(false);
@@ -145,7 +132,7 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
         </button>
         <button
           className={`flex items-center justify-center w-[275px] h-auto border-[1px] border-black rounded-lg p-2 font-semibold text-gray-600`}
-          onClick={() => handleAddToWishlist(Product)}
+          onClick={() => handleWishlist(Product._id)}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -154,7 +141,9 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
             viewBox="0 0 24 24"
             className="mr-2 text-[24px]"
             style={{
-              fill: user?.myWishlist?.includes(Product._id) ? "red" : "white",
+              fill: user?.myWishlist?.some((p) => p._id === Product._id)
+                ? "red"
+                : "white",
             }}
           >
             <path
@@ -165,7 +154,9 @@ const SinglePrdBag = ({ sizeStock, Size, setSize, Product }) => {
               d="M12 20S3 14.91 3 8.727c0-1.093.375-2.152 1.06-2.997a4.672 4.672 0 0 1 2.702-1.638 4.639 4.639 0 0 1 3.118.463A4.71 4.71 0 0 1 12 6.909a4.71 4.71 0 0 1 2.12-2.354 4.639 4.639 0 0 1 3.118-.463 4.672 4.672 0 0 1 2.701 1.638A4.756 4.756 0 0 1 21 8.727C21 14.91 12 20 12 20Z"
             ></path>
           </svg>
-          {user?.myWishlist?.includes(Product._id) ? "WISHLISTED" : "WISHLIST"}
+          {user?.myWishlist?.some((p) => p._id === Product._id)
+            ? "WISHLISTED"
+            : "WISHLIST"}
         </button>
       </div>
 

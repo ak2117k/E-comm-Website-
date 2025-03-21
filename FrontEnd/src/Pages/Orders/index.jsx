@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 
 const index = () => {
   const user = useSelector((state) => state.user.user);
+  console.log(user?.myOrders);
   return (
     <div className="flex flex-col lg:flex-row">
       <SideContainer />

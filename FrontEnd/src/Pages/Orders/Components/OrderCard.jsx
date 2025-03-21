@@ -1,11 +1,11 @@
 const OrderCard = ({ order }) => {
-  console.log(order);
+  console.log("order card", order);
   return (
     <div className="border p-4 mb-4 rounded-md shadow-sm">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-lg font-semibold">
-            {`#${order._id}`} {order.bookings[0].OrderStatus}
+            {`#${order?._id}`} {order?.OrderStatus}
           </h2>
           <p>
             Order placed on:{" "}
@@ -14,7 +14,7 @@ const OrderCard = ({ order }) => {
         </div>
       </div>
       <div className="mt-2">
-        {order.bookings.map((product, index) => (
+        {order?.products?.map((product, index) => (
           <div
             key={index}
             className="flex items-center gap-4 border-b pb-2 mb-2"

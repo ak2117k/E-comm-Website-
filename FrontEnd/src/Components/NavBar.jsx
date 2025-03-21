@@ -14,8 +14,6 @@ const NavBar = () => {
   const location = useLocation();
   const [searchVal, setSearchVal] = useState("");
   const user = useSelector((state) => state.user.user);
-  const cart = useSelector((state) => state.cart.cart);
-  const wishlistItems = useSelector((state) => state.wishlist);
   const [isHovered, setIsHovered] = useState(false);
 
   // Handle search input change with debounce
@@ -216,9 +214,11 @@ const NavBar = () => {
                           d="M.75 4.8c0-.02.003-.037.006-.05h14.488c.003.013.006.03.006.05v14.4c0 .02-.003.037-.006.05H.756a.196.196 0 0 1-.006-.05V4.8ZM4.5 3.75c0-.73.395-1.429 1.098-1.945C6.302 1.29 7.255 1 8.25 1c.995 0 1.948.29 2.652.805C11.605 2.321 12 3.021 12 3.75"
                         />
                       </svg>
-                      <span className="p-1 flex justify-center items-center rounded-full absolute  bottom-6 left-2 bg-[rgb(255,210,50)] text-black w-6 h-6 font-xs">
-                        {cart?.length}
-                      </span>
+                      {user?.myCart[0]?.items?.length > 0 && (
+                        <span className="p-1 flex justify-center items-center rounded-full absolute  bottom-6 left-2 bg-[rgb(255,210,50)] text-black w-6 h-6 font-xs">
+                          {user?.myCart[0]?.items?.length}
+                        </span>
+                      )}
                     </Link>
                   </div>
                 </div>

@@ -91,7 +91,6 @@ const Items = () => {
           },
         }
       );
-      console.log(result2.data.result, result1.data.result);
 
       if (result1.status === 200 && result2.status === 200) {
         dispatch(addUser(result2.data.result));

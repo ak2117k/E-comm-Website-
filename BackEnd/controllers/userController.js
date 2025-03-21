@@ -81,8 +81,11 @@ const getUserDetails = async (userId) => {
       .populate({
         path: "myOrders",
         populate: {
-          path: "bookings.products.productId",
-          model: "Product",
+          path: "bookings",
+          populate: {
+            path: "products.productId",
+            model: "Product",
+          },
         },
       });
     return user;
@@ -280,7 +283,7 @@ const handleAddToCart = async (req, res) => {
     } else {
       const existingItemIndex = userCart.items.findIndex(
         (item) =>
-          item.productId.toString() === productId &&
+          item.productId.toString() === productId.toString() &&
           item.size.toLowerCase() === size.toLowerCase()
       );
 
@@ -513,7 +516,7 @@ const handleCreateBooking = async (req, res) => {
       return res.status(400).json({ error: "Invalid address selected" });
     }
 
-    const shippingCost = 50;
+    const shippingCost = 0;
     const finalTotal = totalAmount + shippingCost;
 
     const payment = new Payments({
@@ -561,6 +564,7 @@ const handleCreateBooking = async (req, res) => {
     await user.save();
 
     const result = await getUserDetails(userId);
+    console.log("Booking Created Successfully", result);
     res.status(201).json({ message: "Booking created successfully", result });
   } catch (error) {
     console.error("Error creating booking:", error);

@@ -7,6 +7,7 @@ import CouponsAndoffers from "./Components/CouponsAndoffers";
 import PriceSummary from "./Components/PriceSummary";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { useEffect } from "react";
 import { addUser } from "../../Storee/User";
 import axios from "axios";
 
@@ -89,9 +90,16 @@ const Index = () => {
     }));
   };
 
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behaviour: "smooth",
+    });
+  });
+
   return (
     <div className="w-[1350px]  ml-20">
-      {user.myCart[0]?.items?.length > 0 && (
+      {user?.myCart[0]?.items?.length > 0 && (
         <div className="">
           <Header />
         </div>

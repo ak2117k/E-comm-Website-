@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 
-const Size = ({ filters, setFilters, allSizes, topSizes, bottomSizes }) => {
+const Size = ({ filters, setFilters }) => {
   const category = useSelector((state) => state.product.category);
   console.log("category", category);
   const [isExpanded, setIsExpanded] = useState(false); // Track expanded state
@@ -13,6 +13,22 @@ const Size = ({ filters, setFilters, allSizes, topSizes, bottomSizes }) => {
   const location = useLocation();
 
   // Helper to determine which sizes to display
+
+  const allSizes = [
+    "XS",
+    "S",
+    "M",
+    "L",
+    "XL",
+    "28",
+    "30",
+    "32",
+    "34",
+    "36",
+    "38",
+  ];
+  const bottomSizes = ["28", "30", "32", "34", "36", "38"];
+  const topSizes = ["XS", "S", "M", "L", "XL"];
   const sizesToDisplay =
     category.length > 1 &&
     (category.includes("shorts") || category.includes("pants"))
@@ -76,6 +92,7 @@ const Size = ({ filters, setFilters, allSizes, topSizes, bottomSizes }) => {
 
   // Toggle the visibility of the size container
   const handleContainerStatus = () => setShowContainer((prev) => !prev);
+  console.log("sizes", sizesToDisplay);
 
   return (
     <div className="w-[100%] text-black text-lg border-t border-gray-200 mt-4">

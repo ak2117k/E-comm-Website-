@@ -53,16 +53,6 @@ const ProductContainer = ({ fetchProducts, loaderRef, filters }) => {
     }
   };
 
-  // useEffect(() => {
-  //   window.addEventListener("scroll", handleScroll);
-  //   return () => window.removeEventListener("scroll", handleScroll); // Cleanup on unmount
-  // }, [dispatch, products, productsCount, isLoadingMore]); // Re-run this effect when the product list or product count changes
-
-  // useEffect(() => {
-  //   window.addEventListener("scroll", handleTopScroll);
-  //   return () => window.removeEventListener("scroll", handleTopScroll);
-  // }, [dispatch]);
-
   useEffect(() => {
     if (page > 1) {
       console.log(page);

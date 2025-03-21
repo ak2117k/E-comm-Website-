@@ -17,6 +17,13 @@ const Layout = () => {
       localStorage.setItem("lastlocation", lastloc);
     }
   }, [location]);
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behaviour: "smooth",
+    });
+  });
   return (
     <>
       <NavBar />
